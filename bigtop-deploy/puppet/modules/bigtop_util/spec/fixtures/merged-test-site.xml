@@ -1,0 +1,35 @@
+<?xml version='1.0'?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+  <!-- Comment -->
+  <property>
+    <name>a</name>
+    <value>overridden_a</value>
+  </property>
+
+  <!-- Mixed formats -->
+  <property><name>b</name><value>old_b</value></property>
+  <property><name>c</name><value>overridden_c</value></property>
+
+  <property>
+    <name>d</name>
+    <value>new_d</value>
+  </property>
+
+  <property>
+    <name>e</name>
+    <value>overridden_e</value>
+    <final>true</final>
+  </property>
+
+  <property>
+    <name>f</name>
+    <value>new_f</value>
+  </property>
+
+  <property>
+    <name>g</name>
+    <value>new_g</value>
+  </property>
+</configuration>

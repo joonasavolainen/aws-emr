@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<configuration>
+
+  <!-- KMS Backend KeyProvider -->
+
+  <property>
+    <name>hadoop.kms.key.provider.uri</name>
+    <value>jceks://file@/var/lib/hadoop-kms/kms.keystore</value>
+    <description>
+      URI of the backing KeyProvider for the KMS.
+    </description>
+  </property>
+
+  <property>
+    <name>hadoop.security.keystore.java-keystore-provider.password-file</name>
+    <value>keystore.password</value>
+    <description>
+      The file containing the password for the keystore file.
+    </description>
+  </property>
+
+  <!-- KMS Security -->
+
+  <property>
+    <name>hadoop.kms.authentication.type</name>
+    <value><%= @hadoop_security_authentication %></value>
+    <description>
+      Authentication type for the KMS. Can be either &quot;simple&quot;
+      or &quot;kerberos&quot;.
+    </description>
+  </property>
+<% if @hadoop_security_authentication == "kerberos" -%>
+
+  <property>
+    <name>hadoop.kms.authentication.kerberos.keytab</name>
+    <value>/etc/kms.keytab</value>
+    <description>
+      Path to the keytab with credentials for the configured Kerberos principal.
+    </description>
+  </property>
+
+  <property>
+    <name>hadoop.kms.authentication.kerberos.principal</name>
+    <value>HTTP/<%= @fqdn %></value>
+    <description>
+      The Kerberos principal to use for the HTTP endpoint.
+      The principal must start with 'HTTP/' as per the Kerberos HTTP SPNEGO specification.
+    </description>
+  </property>
+
+  <property>
+    <name>hadoop.kms.authentication.kerberos.name.rules</name>
+    <value>DEFAULT</value>
+    <description>
+      Rules used to resolve Kerberos principal names.
+    </description>
+  </property>
+<% end -%>
+
+</configuration>

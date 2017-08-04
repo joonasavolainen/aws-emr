@@ -1,0 +1,56 @@
+<%
+  # Licensed to the Apache Software Foundation (ASF) under one
+  # or more contributor license agreements.  See the NOTICE file
+  # distributed with this work for additional information
+  # regarding copyright ownership.  The ASF licenses this file
+  # to you under the Apache License, Version 2.0 (the
+  # "License"); you may not use this file except in compliance
+  # with the License.  You may obtain a copy of the License at
+  #
+  #     http://www.apache.org/licenses/LICENSE-2.0
+  #
+  # Unless required by applicable law or agreed to in writing, software
+  # distributed under the License is distributed on an "AS IS" BASIS,
+  # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  # See the License for the specific language governing permissions and
+  # limitations under the License.
+%>
+<% if @metastore_server_uris[0] -%>
+  <property>
+    <name>hive.metastore.uris</name>
+    <value><%= @metastore_server_uris.join(",") %></value>
+    <description>JDBC connect string for a JDBC metastore</description>
+  </property>
+<% end -%>
+
+<% if @metastore_database_url -%>
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value><%= @metastore_database_url %></value>
+    <description>username to use against metastore database</description>
+  </property>
+<% end -%>
+
+<% if @metastore_database_driver_class -%>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value><%= @metastore_database_driver_class %></value>
+    <description>username to use against metastore database</description>
+  </property>
+<% end -%>
+
+<% if @metastore_database_user -%>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value><%= @metastore_database_user %></value>
+    <description>username to use against metastore database</description>
+  </property>
+<% end -%>
+
+<% if @metastore_database_password -%>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value><%= @metastore_database_password %></value>
+    <description>password to use against metastore database</description>
+  </property>
+<% end -%>

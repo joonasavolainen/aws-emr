@@ -1,0 +1,3 @@
+fixtures:
+  symlinks:
+    bigtop-util: "#{source_dir}"

@@ -1,0 +1,5 @@
+---
+hadoop::ha: "manual"
+hadoop::hadoop_namenode_host:
+  - "%{hiera('bigtop::hadoop_head_node')}"
+  - "%{hiera('bigtop::standby_head_node')}"
