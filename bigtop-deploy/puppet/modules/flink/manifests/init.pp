@@ -22,7 +22,9 @@ class flink {
     $flink_log4j_overrides = {},
     $flink_log4j_yarn_session_overrides = {},
     $flink_log4j_cli_overrides = {},
-    $storage_dirs = undef, 
+    $storage_dirs = undef,
+    $yarn_conf_dir = undef,
+    $hadoop_conf_dir = undef,
   ) {
     include hadoop::common
 

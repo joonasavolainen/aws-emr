@@ -86,7 +86,7 @@ class hadoop_oozie (
 
     Exec['init hdfs'] -> Exec['Oozie sharelib init']
 
-    if ($kerberos_realm) {
+    if ($kerberos_realm and $kerberos_realm != "") {
       require kerberos::client
       kerberos::host_keytab { 'oozie':
         spnego  => true,
@@ -180,8 +180,17 @@ class hadoop_oozie (
         notify  => Service['oozie']
       }
 
+      file { '/etc/oozie/conf/action-conf/pig/hive-site.xml':
+        ensure  => link,
+        target  => '/etc/hive/conf/hive-site.xml',
+        require => File['/etc/oozie/conf/action-conf/hive'],
+        notify  => Service['oozie']
+      }
+
       Bigtop_file::Site <| title == '/etc/hive/conf/hive-site.xml' |> -> File['/etc/oozie/conf/action-conf/hive/hive-site.xml']
+      Bigtop_file::Site <| title == '/etc/hive/conf/hive-site.xml' |> -> File['/etc/oozie/conf/action-conf/pig/hive-site.xml']
       Bigtop_file::Site <| title == '/etc/hive/conf/hive-site.xml' |> ~> Service['oozie']
+    
     }
 
     if ($symlink_pig_conf) {

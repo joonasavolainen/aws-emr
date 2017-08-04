@@ -25,6 +25,7 @@ class mahout {
     $hadoop_lzo_codec = false,
     $use_hive = false,
     $use_emrfs = false,
+    $use_spark = false,
     $mahout_env_overrides = {},
   ) {
     include hadoop::common

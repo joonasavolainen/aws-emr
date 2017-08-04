@@ -40,7 +40,7 @@ class alluxio {
       ensure => "directory",
       owner  => "root",
       group  => "root",
-      mode   => 1777,
+      mode   => "1777",
       require => Package['alluxio']
     }
     
@@ -67,13 +67,14 @@ class alluxio {
   }
 
   class master {
-    include common
+    include alluxio::common
 
     package { "alluxio-master":
       ensure => latest,
     }
 
     exec { "alluxio format":
+      user => 'alluxio',
       command => "/usr/lib/alluxio/bin/alluxio format",
       unless => "/usr/bin/test -f /var/run/alluxio/.format",
       before  => File['/var/run/alluxio/.format'],
@@ -100,7 +101,7 @@ class alluxio {
   }
 
   class worker {
-    include common
+    include alluxio::common
 
     package { "alluxio-worker": 
       ensure => latest,

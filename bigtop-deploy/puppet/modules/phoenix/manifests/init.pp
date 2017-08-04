@@ -56,12 +56,12 @@ class phoenix {
   }
 
   class library {
-    include common
+    include phoenix::common
   }
 
   class query_server(
   ) {
-    include common
+    include phoenix::common
 
     package { 'phoenix-queryserver':
       ensure => latest,

@@ -18,7 +18,7 @@ class spark_jobserver {
   class deploy ($roles) {
     if ("spark-jobserver" in $roles) {
       include hadoop::init_hdfs
-      include server
+      include spark_jobserver::server
       
       Class["Hadoop::Init_hdfs"] -> Class["Spark_Jobserver::Server"]
     }

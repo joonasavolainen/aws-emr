@@ -98,7 +98,8 @@
         "spark.home": "/usr/lib/spark",
         "zeppelin.spark.concurrentSQL": "false",
         "zeppelin.spark.importImplicit": "true",
-        "zeppelin.pyspark.python": "python"
+        "zeppelin.pyspark.python": "python",
+        "zeppelin.dep.localrepo":"/usr/lib/zeppelin/local-repo"
       },
       "interpreterGroup": [
         {

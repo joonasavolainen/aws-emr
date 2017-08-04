@@ -17,7 +17,7 @@ class hadoop_pig {
 
   class deploy ($roles) {
     if ("pig-client" in $roles) {
-      include client
+      include hadoop_pig::client
     }
   }
 
@@ -40,7 +40,7 @@ class hadoop_pig {
         ensure => 'directory',
         owner  => 'root',
         group  => 'root',
-        mode   => 1777,
+        mode   => '1777',
         require => Package['pig']
       }
     }

@@ -17,7 +17,7 @@ class zeppelin {
 
   class deploy ($roles) {
     if ('zeppelin-server' in $roles) {
-      include server
+      include zeppelin::server
     }
   }
 
@@ -48,6 +48,11 @@ class zeppelin {
       group   => 'zeppelin',
     }
 
+    # Build matplotlib cache ahead of time and to prevent unnecessary warnings
+    exec { 'Build matplotlib font cache':
+      command => '/usr/bin/python -c "import matplotlib; matplotlib.use(\'agg\'); import matplotlib.pyplot"',
+    }
+    
     service { 'zeppelin':
       ensure     => running,
       subscribe  => [ Package['zeppelin'], Bigtop_file::Env['/etc/zeppelin/conf/zeppelin-env.sh'], File['/etc/zeppelin/conf/interpreter.json'], ],

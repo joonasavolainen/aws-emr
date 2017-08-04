@@ -29,9 +29,10 @@ class hadoop ($hadoop_security_authentication = "simple",
   $use_emr_goodies = false,
   $use_kinesis = false,
   $proxyusers = {
-    oozie => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,httpfs,hue,users', hosts => "*" },
-                  hue => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,httpfs,hue,users', hosts => "*" },
-               httpfs => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,httpfs,hue,users', hosts => "*" } },
+    oozie => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,hive,httpfs,hue,users', hosts => "*" },
+     hive => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,hive,httpfs,hue,users', hosts => "*" },
+      hue => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,hive,httpfs,hue,users', hosts => "*" },
+   httpfs => { groups => 'hudson,testuser,root,hadoop,jenkins,oozie,hive,httpfs,hue,users', hosts => "*" } },
   $generate_secrets = false,
 ) {
 
@@ -112,7 +113,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     $users = {},
   ) inherits hadoop {
 
-    include common_hdfs
+    include hadoop::common_hdfs
 
     exec { 'hdfs ready':
       path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
@@ -190,7 +191,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   ) inherits hadoop {
 
     if ($hadoop_lzo_codec) {
-      include lzo_codec
+      include hadoop::lzo_codec
       Package["hadoop-lzo"] -> Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"]
     }
 
@@ -259,6 +260,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $hadoop_rm_port = "8032",
       $hadoop_rm_admin_port = "8033",
       $hadoop_rm_webapp_port = "8088",
+      $hadoop_rm_bind_host = undef,
       $hadoop_rt_port = "8025",
       $hadoop_sc_port = "8030",
       $yarn_log_server_url = undef,
@@ -279,15 +281,17 @@ class hadoop ($hadoop_security_authentication = "simple",
       $use_kinesis = $hadoop::use_kinesis,
       $hadoop_security_authentication = $hadoop::hadoop_security_authentication,
       $kerberos_realm = $hadoop::kerberos_realm,
+      $yarn_nodemanager_vmem_check_enabled = undef,
       $yarn_site_overrides = {},
       $yarn_env_overrides = {},
       $capacity_scheduler_overrides = {},
+      $container_log4j_overrides = {},
       $use_mapreduce_shuffle = false,
       $use_spark_datanucleus = false,
       $use_spark_shuffle = false,
   ) inherits hadoop {
 
-    include common_core
+    include hadoop::common_core
 
     package { "hadoop-yarn":
       ensure => latest,
@@ -312,7 +316,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     if ($use_mapreduce_shuffle) {
-      include common_mapred_app
+      include hadoop::common_mapred_app
       Package["hadoop-mapreduce"] -> Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"]
     }
 
@@ -359,6 +363,11 @@ class hadoop ($hadoop_security_authentication = "simple",
       content => template('hadoop/container-executor.cfg'), 
       require => [Package["hadoop"]],
     }
+
+    bigtop_file::properties { "/etc/hadoop/conf/container-log4j.properties":
+      overrides => $container_log4j_overrides,
+      require => [Package["hadoop-yarn"]],
+    }
   }
 
   class common_core (
@@ -382,7 +391,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $hadoop_ssl_client_overrides = {},
   ) inherits hadoop {
 
-    include common
+    include hadoop::common
 
     $hadoop_shared_dirs = concat(
       $s3_buffer_dirs ? { undef => [], default => $s3_buffer_dirs },
@@ -393,7 +402,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       ensure => directory,
       owner => hadoop,
       group => hadoop,
-      mode => 1777,
+      mode => '1777',
       require => [Package["hadoop"]],
     }
 
@@ -434,11 +443,15 @@ class hadoop ($hadoop_security_authentication = "simple",
       $hadoop_dfs_namenode_plugins = "",
       $hadoop_namenode_host = $hadoop::hadoop_namenode_host,
       $hadoop_namenode_port = $hadoop::hadoop_namenode_port,
+      $hadoop_namenode_bind_host = undef,
       $hadoop_namenode_http_port = "50070",
+      $hadoop_namenode_http_bind_host = undef,
       $hadoop_namenode_https_port = "50470",
+      $hadoop_namenode_https_bind_host = undef,
       $hdfs_data_dirs = suffix($hadoop::hadoop_storage_dirs, "/hdfs"),
       $hdfs_shortcut_reader = undef,
       $hdfs_support_append = undef,
+      $hdfs_replace_datanode_on_failure = undef,
       $hdfs_webhdfs_enabled = "true",
       $hdfs_replication = undef,
       $hdfs_datanode_fsdataset_volume_choosing_policy = undef,
@@ -467,6 +480,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $hadoop_http_authentication_signature_secret_file = "/etc/hadoop/conf/hadoop-http-authentication-signature-secret",
       $hadoop_http_authentication_cookie_domain = regsubst($fqdn, "^[^\\.]+\\.", ""),
       $generate_secrets = $hadoop::generate_secrets,
+      $namenode_datanode_registration_ip_hostname_check = undef,
       $key_provider_uri = $hadoop::key_provider_uri,
       $hdfs_site_overrides = {},
   ) inherits hadoop {
@@ -474,8 +488,8 @@ class hadoop ($hadoop_security_authentication = "simple",
     $sshfence_keydir  = "$hadoop_ha_sshfence_user_home/.ssh"
     $sshfence_keypath = "$sshfence_keydir/id_sshfence"
 
-    include common_core
-    include hdfs_library
+    include hadoop::common_core
+    include hadoop::hdfs_library
 
   # Check if test mode is enforced, so we can install hdfs ssh-keys for passwordless
     if ($testonly_hdfs_sshkeys == "yes") {
@@ -608,6 +622,10 @@ class hadoop ($hadoop_security_authentication = "simple",
       $mapreduce_output_fileoutputformat_compress_type = "BLOCK", # "RECORD" default
       $mapreduce_map_output_compress = undef,
       $mapreduce_job_reduce_slowstart_completedmaps = undef,
+      $mapreduce_map_memory_mb = undef,
+      $mapreduce_reduce_memory_mb = undef,
+      $mapreduce_map_java_opts = "-Xmx1024m",
+      $mapreduce_reduce_java_opts = "-Xmx1024m",
       $hadoop_lzo_codec = $hadoop::hadoop_lzo_codec,
       $use_emrfs = $hadoop::use_emrfs,
       $use_dynamodb = $hadoop::use_dynamodb,
@@ -619,7 +637,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $mapred_site_overrides = {},
       $mapred_env_overrides = {},
   ) inherits hadoop {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     package { "hadoop-mapreduce":
       ensure => latest,
@@ -681,7 +699,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   class datanode (
     $hadoop_security_authentication = $hadoop::hadoop_security_authentication,
   ) inherits hadoop {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     package { "hadoop-hdfs-datanode":
       ensure => latest,
@@ -710,7 +728,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       ensure => directory,
       owner => hdfs,
       group => hdfs,
-      mode => 755,
+      mode => '755',
       require => [ Package["hadoop-hdfs"] ],
     }
   }
@@ -724,7 +742,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $httpfs_site_overrides = {},
       $httpfs_env_overrides = {},
   ) inherits hadoop {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     if ($hadoop_security_authentication == "kerberos") {
       kerberos::host_keytab { "httpfs":
@@ -791,7 +809,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     $kms_site_overrides = {},
   ) inherits hadoop {
 
-    include common_core
+    include hadoop::common_core
 
     if ($hadoop_security_authentication == 'kerberos') {
       require kerberos::client
@@ -841,7 +859,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       content => $kms_keystore_password,
     # it's a password file - do not filebucket
       backup => false,
-      mode => 600,
+      mode => '600',
       owner => 'kms',
       group => 'kms',
       require => [Package['hadoop-kms']],
@@ -859,7 +877,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class kinit {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     exec { "HDFS kinit":
       command => "/usr/bin/kinit -kt /etc/hdfs.keytab hdfs/$fqdn && /usr/bin/kinit -R",
@@ -908,7 +926,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       # milliseconds
       $standby_bootstrap_retry_interval = 30000,
       $should_format_namenode = undef) {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     if ($hadoop::common_hdfs::ha != 'disabled') {
       file { $hadoop::common_hdfs::sshfence_keydir:
@@ -1068,7 +1086,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       ensure => directory,
       owner => hdfs,
       group => hdfs,
-      mode => 700,
+      mode => '700',
       require => [Package["hadoop-hdfs"]], 
     }
   }
@@ -1091,11 +1109,11 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class standby_namenode {
-    include namenode
+    include hadoop::namenode
   }
       
   class secondarynamenode {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     package { "hadoop-hdfs-secondarynamenode":
       ensure => latest,
@@ -1121,7 +1139,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class journalnode {
-    include common_hdfs
+    include hadoop::common_hdfs
 
     package { "hadoop-hdfs-journalnode":
       ensure => latest,
@@ -1145,14 +1163,14 @@ class hadoop ($hadoop_security_authentication = "simple",
       ensure => directory,
       owner => 'hdfs',
       group => 'hdfs',
-      mode => 755,
+      mode => '755',
       require => [Package["hadoop-hdfs"]],
     }
   }
 
 
   class resourcemanager {
-    include common_yarn
+    include hadoop::common_yarn
 
     package { "hadoop-yarn-resourcemanager":
       ensure => latest,
@@ -1178,7 +1196,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class proxyserver {
-    include common_yarn
+    include hadoop::common_yarn
 
     package { "hadoop-yarn-proxyserver":
       ensure => latest,
@@ -1198,7 +1216,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class timelineserver {
-    include common_yarn
+    include hadoop::common_yarn
 
     package { "hadoop-yarn-timelineserver":
       ensure => latest,
@@ -1218,7 +1236,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   }
 
   class historyserver {
-    include common_mapred_app
+    include hadoop::common_mapred_app
 
     package { "hadoop-mapreduce-historyserver":
       ensure => latest,
@@ -1240,8 +1258,8 @@ class hadoop ($hadoop_security_authentication = "simple",
 
 
   class nodemanager {
-    include common_mapred_app
-    include common_yarn
+    include hadoop::common_mapred_app
+    include hadoop::common_yarn
 
     package { "hadoop-yarn-nodemanager":
       ensure => latest,
@@ -1264,20 +1282,20 @@ class hadoop ($hadoop_security_authentication = "simple",
       ensure => directory,
       owner => yarn,
       group => yarn,
-      mode => 755,
+      mode => '755',
       require => [Package["hadoop-yarn"]],
     }
   }
 
   class mapred_app {
-    include common_mapred_app
+    include hadoop::common_mapred_app
 
     hadoop::create_storage_dir { $hadoop::common_mapred_app::mapred_data_dirs: } ->
     file { $hadoop::common_mapred_app::mapred_data_dirs:
       ensure => directory,
       owner => yarn,
       group => yarn,
-      mode => 755,
+      mode => '755',
       require => [Package["hadoop-mapreduce"]],
     }
 
@@ -1286,15 +1304,15 @@ class hadoop ($hadoop_security_authentication = "simple",
         ensure => directory,
         owner => yarn,
         group => yarn,
-        mode => 775,
+        mode => '775',
         require => [Package["hadoop-mapreduce"]],
       }
     }
   }
 
   class client {
-      include common_mapred_app
-      include common_yarn
+      include hadoop::common_mapred_app
+      include hadoop::common_yarn
 
       $hadoop_client_packages = $operatingsystem ? {
         /(OracleLinux|CentOS|RedHat|Fedora)/  => [ "hadoop-client", "hadoop-libhdfs", "hadoop-debuginfo" ],

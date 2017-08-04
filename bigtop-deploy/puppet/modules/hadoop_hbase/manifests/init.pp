@@ -15,12 +15,16 @@
 
 class hadoop_hbase {
 
-  class deploy ($roles) {
+  class deploy ($roles, $auxiliary = true) {
     if ("hbase-server" in $roles) {
       include hadoop_hbase::server
     }
 
     if ("hbase-master" in $roles) {
+      if ($auxiliary == true) {
+        include hadoop_zookeeper::server
+      }
+
       include hadoop_hbase::master
       Exec <| title == 'init hdfs' |> -> Service['hbase-master']
     }
@@ -42,7 +46,7 @@ class hadoop_hbase {
   class client_package  {
     package { "hbase":
       ensure => latest,
-    } 
+    }
   }
 
   class common_config (
@@ -59,8 +63,8 @@ class hadoop_hbase {
     $on_s3 = false,
     $hbase_data_dirs = suffix(hiera('emr::apps_mounted_dirs'), "/hbase")
   ) {
-    include client_package
-    if ($kerberos_realm) {
+    include hadoop_hbase::client_package
+    if ($kerberos_realm and $kerberos_realm != "") {
       require kerberos::client
       kerberos::host_keytab { "hbase": 
         spnego => true,
@@ -113,11 +117,11 @@ class hadoop_hbase {
   }
 
   class client {
-    include common_config
+    include hadoop_hbase::common_config
   }
 
   class server {
-    include common_config
+    include hadoop_hbase::common_config
 
     unless !$hadoop_hbase::common_config::on_s3 and hiera('emr::node_type') == "task" {
       package { "hbase-regionserver":
@@ -136,7 +140,7 @@ class hadoop_hbase {
   }
 
   class master {
-    include common_config
+    include hadoop_hbase::common_config
 
     package { "hbase-master":
       ensure => latest,
@@ -153,7 +157,7 @@ class hadoop_hbase {
   }
 
   class thrift_server {
-    include common_config
+    include hadoop_hbase::common_config
 
     package { "hbase-thrift":
       ensure => latest,
@@ -170,7 +174,7 @@ class hadoop_hbase {
   }
 
   class rest_server {
-    include common_config
+    include hadoop_hbase::common_config
 
     package { "hbase-rest":
       ensure => latest,

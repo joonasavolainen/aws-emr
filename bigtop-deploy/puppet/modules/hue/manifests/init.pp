@@ -62,7 +62,7 @@ class hue {
       $desktop_secret_key = $secret_key
     }
 
-    if ($kerberos_realm) {
+    if ($kerberos_realm and $kerberos_realm != "") {
       require kerberos::client
       kerberos::host_keytab { "hue":
         spnego => false,

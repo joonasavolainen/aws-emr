@@ -17,9 +17,11 @@ class kerberos {
 
   class deploy ($roles) {
     if ("kerberos-server" in $roles) {
-      include kerberos::server
       include kerberos::kdc
       include kerberos::kdc::admin_server
+    }
+    if ("kerberos-client" in $roles) {
+      include kerberos::client
     }
   }
 
@@ -143,18 +145,6 @@ class kerberos {
     package { $package_name_client:
       ensure => installed,
     }
-  }
-
-  class server {
-    include kerberos::client
-
-    class { "kerberos::kdc": } 
-    ->
-    Class["kerberos::client"] 
-
-    class { "kerberos::kdc::admin_server": }
-    -> 
-    Class["kerberos::client"]
   }
 
   define principal {

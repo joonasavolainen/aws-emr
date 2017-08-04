@@ -12,12 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+export MAHOUT_HOME=${MAHOUT_HOME:-/usr/lib/mahout}
 <%-
 $classpath = ''
 $classpath += ':/etc/hive/conf' if @use_hive
 $classpath += ':/usr/lib/hadoop-lzo/lib/*' if @hadoop_lzo_codec
 $classpath += ':/usr/share/aws/aws-java-sdk/*'
 $classpath += ':/usr/share/aws/emr/emrfs/conf:/usr/share/aws/emr/emrfs/lib/*:/usr/share/aws/emr/emrfs/auxlib/*' if @use_emrfs
+$classpath += ':/usr/lib/spark/jars/*' if @use_spark
 
 $libraryPath = ':/usr/lib/hadoop/lib/native'
 $libraryPath += ':/usr/lib/hadoop-lzo/lib/native' if @hadoop_lzo_codec

@@ -114,6 +114,7 @@ $roles_map = {
     client => ["pig-client"],
   },
   hive => {
+    master => ["hive-server2", "hive-metastore"],
     client => ["hive-client"],
     gateway_server => ["hive-server", "hive-metastore-server"],
   },
@@ -146,6 +147,9 @@ $roles_map = {
   emr-ddb => {
     library => ["emr-ddb"],
   },
+  aws-hm-client => {
+    library => ["aws-hm-client"],
+  },
   emr-goodies => {
     library => ["emr-goodies"],
   },
@@ -164,6 +168,13 @@ $roles_map = {
     worker => ["qfs-chunkserver"],
     client => ["qfs-client"],
   },
+  gpdb => {
+    master => ["gpdb-master"],
+    worker => ["gpdb-segment"],
+  },
+  kafka => {
+    master => ["kafka-server"],
+  }
 }
 
 class hadoop_cluster_node (
@@ -214,6 +225,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
   $modules = [
     "alluxio",
     "apex",
+    "aws_hm_client",
     "bigtop_mysql",
     "bigtop_webserver",
     "crunch",
@@ -224,6 +236,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "flink",
     "ganglia",
     "giraph",
+    "gpdb",
     "hadoop",
     "hadoop_hbase",
     "ignite_hadoop",
@@ -234,9 +247,11 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "hadoop_zookeeper",
     "hcatalog",
     "hue",
+    "kafka",
     "kerberos",
     "mahout",
     "phoenix",
+    "presto",
     "s3_dist_cp",
     "solr",
     "spark",
@@ -247,7 +262,6 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "tez",
     "ycsb",
     "zeppelin",
-    "presto"
   ]
 
   deploy_module { $modules:

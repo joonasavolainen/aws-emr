@@ -55,6 +55,9 @@
 # The parallelism used for programs that did not specify and other parallelism.
 #parallelism.default: 1
 
+env.yarn.conf.dir: /etc/hadoop/conf
+env.hadoop.conf.dir: /etc/hadoop/conf
+
 #==============================================================================
 # Web Frontend
 #==============================================================================

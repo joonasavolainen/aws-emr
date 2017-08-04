@@ -35,9 +35,9 @@ class hcatalog {
     $hcatalog_env_overrides = {},
     $hcatalog_jndi_overrides = {},
     $hcatalog_proto_hive_site_overrides = {},
-    $metastore_port = hiera('hadoop_hive::common::metastore_server_port'),
+    $metastore_port = hiera('hadoop_hive::common_config::metastore_server_port'),
   ) {
-    include hadoop_hive::common
+    include hadoop_hive::common_config
     package { 'hive-hcatalog':
       ensure => latest,
     }
@@ -62,13 +62,13 @@ class hcatalog {
   }
 
   class client {
-    include common
+    include hcatalog::common
   }
 
   class server(
     $kerberos_realm = '',
   ) {
-    include common
+    include hcatalog::common
 
     package { 'hive-hcatalog-server':
       ensure => latest,
@@ -83,6 +83,7 @@ class hcatalog {
       hasrestart => true,
       hasstatus => true,
     }
+    Exec<| title == 'init hive-metastore schema' |> -> Service['hive-hcatalog-server']
   }
 
   class webhcat {

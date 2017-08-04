@@ -80,7 +80,7 @@ class tez {
 
     exec { 'Unzip Tez-UI War to webapps':
       path      => '/bin:/usr/bin/',
-      command   => "unzip /usr/lib/tez/tez-ui-*.war -d /var/lib/tomcat8/webapps/tez-ui",
+      command   => "unzip -u /usr/lib/tez/tez-ui-*.war -d /var/lib/tomcat8/webapps/tez-ui",
       require   => [
         Package['tez'],
         File['/var/lib/tomcat8/webapps/tez-ui']

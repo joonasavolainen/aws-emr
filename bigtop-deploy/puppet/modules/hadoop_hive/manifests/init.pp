@@ -20,51 +20,73 @@ class hadoop_hive {
     if ('hive-client' in $roles) {
       include hadoop_hive::client
     }
+
     if ('hive-metastore-server' in $roles) {
-      include hadoop_hive::metastore_server
+      include hadoop_hive::metastore
     }
-    if ('hive-server' in $roles) {
-      include hadoop_hive::server
+
+    if ('hive-server2' in $roles) {
+      include hadoop_hive::server2
       if ('hive-metastore-server' in $roles) {
         Class['Hadoop_hive::Metastore_server'] -> Class['Hadoop_hive::Server']
       }
     }
 
+    if ('hive-hbase' in $roles) {
+      include hadoop_hive::hbase
+    }
+
     # Need to make sure local mysql server is setup correctly (in case hive is
     # using it) before initializing the schema
-    if ('hive-client' or 'hive-metastore-server' or 'hive-server' in $roles) {
+    if ('hive-client' or 'hive-metastore-server' or 'hive-server2' in $roles) {
       if ('mysql-server' in $roles) {
         Class['Bigtop_mysql::Server'] -> Exec<| title == 'init hive-metastore schema' |>
       }
     }
   }
 
-  class common (
-    $metastore_server_uris = [],
-    $metastore_database_type = 'derby',
-    $metastore_database_host = $fqdn,
-    $metastore_database_port = '3306',
-    $metastore_database_name = 'hive',
-    $metastore_database_user = 'hive',
-    $metastore_database_password = 'hive',
-    $hbase_master = undef,
-    $hbase_zookeeper_quorum = undef,
-    $hdfs_uri = undef,
-    $hive_env_overrides = {},
-    $hive_site_overrides = {},
-    $hive_log4j2_overrides = {},
-    $hive_exec_log4j2_overrides = {},
-    $hive_beeline_log4j2_overrides = {},
-    $hive_parquet_logging_overrides = {},
-    $hiveserver2_site_overrides = {},
-    $hive_llap_daemon_log4j2_overrides = {},
-    $user_log_dir = undef,
-    $java_tmp_dir = undef,
-    $use_dynamodb = false,
-    $use_emr_goodies = false,
-    $use_kinesis = false,
-    $hive_execution_engine = "mr",
-    ) {
+  class client_package {
+    package { "hive":
+      ensure => latest,
+    }
+  }
+
+  class common_config ($hbase_master = "",
+                       $hbase_zookeeper_quorum = "",
+                       $kerberos_realm = "",
+                       $metastore_uris = "",
+                       $server2_thrift_port = "10000",
+                       $server2_thrift_http_port = "10001",
+                       $hive_execution_engine = "mr",
+                       $metastore_server_uris = [],
+                       $metastore_database_type = 'derby',
+                       $metastore_database_host = $fqdn,
+                       $metastore_database_port = '3306',
+                       $metastore_database_name = 'hive',
+                       $metastore_database_user = 'hive',
+                       $metastore_database_password = 'hive',
+                       $hdfs_uri = undef,
+                       $hive_env_overrides = {},
+                       $hive_site_overrides = {},
+                       $hive_log4j2_overrides = {},
+                       $hive_exec_log4j2_overrides = {},
+                       $hive_beeline_log4j2_overrides = {},
+                       $hive_parquet_logging_overrides = {},
+                       $hiveserver2_site_overrides = {},
+                       $hive_llap_daemon_log4j2_overrides = {},
+                       $user_log_dir = undef,
+                       $java_tmp_dir = undef,
+                       $use_dynamodb = false,
+                       $use_emr_goodies = false,
+                       $use_kinesis = false) {
+    include hadoop_hive::client_package
+    if ($kerberos_realm and $kerberos_realm != "") {
+      require kerberos::client
+      kerberos::host_keytab { "hive":
+        spnego => true,
+        require => Package["hive"],
+      }
+    }
 
     $sticky_dirs = delete_undef_values([$java_tmp_dir, $user_log_dir])
 
@@ -72,7 +94,7 @@ class hadoop_hive {
       ensure => "directory",
       owner  => "root",
       group  => "root",
-      mode   => 1777,
+      mode   => "1777",
       require => Package['hive']
     }
 
@@ -118,10 +140,6 @@ class hadoop_hive {
     $metastore_database_driver_class = get_metastore_driver_class($metastore_database_type)
     $metastore_database_schema_type = get_metastore_schema_type($metastore_database_type)
 
-    package { 'hive':
-      ensure => latest,
-    }
-
     bigtop_file::site { '/etc/hive/conf/hive-site.xml':
       content => template('hadoop_hive/hive-site.xml'),
       overrides => $hive_site_overrides,
@@ -166,17 +184,18 @@ class hadoop_hive {
       require => Package['hive'],
     }
 
-    include init_metastore_schema
+    include hadoop_hive::init_metastore_schema
   }
 
-  class client {
+  class client($hbase_master = "",
+      $hbase_zookeeper_quorum = "",
+      $hive_execution_engine = "mr") {
 
-    include common
+      include hadoop_hive::common_config
   }
 
-  class server {
-
-    include common
+  class server2 {
+    include hadoop_hive::common_config
 
     package { 'hive-server2':
       ensure => latest,
@@ -184,18 +203,20 @@ class hadoop_hive {
 
     service { 'hive-server2':
       ensure    => running,
-      hasstatus => true,
-      subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
       require   => [Package['hive'], Package['hive-server2'], Class['Hadoop_hive::Init_metastore_schema']],
+      subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
+      hasrestart => true,
+      hasstatus => true,
     }
+    Kerberos::Host_keytab <| title == "hive" |> -> Service["hive-server2"]
+    Service <| title == "hive-metastore" |> -> Service["hive-server2"]
     File <| tag == 'hive-aux-jar' |> -> Service['hive-server2']
     Bigtop_file::Env <| title == '/etc/hadoop/conf/hadoop-env.sh' |> ~> Service['hive-server2']
     Bigtop_file::Site <| tag == 'hadoop-plugin' or title == '/etc/hadoop/conf/core-site.xml' |> ~> Service['hive-server2']
   }
 
-  class metastore_server {
-
-    include common
+  class metastore {
+    include hadoop_hive::common_config
 
     package { 'hive-metastore':
       ensure => latest,
@@ -203,20 +224,22 @@ class hadoop_hive {
 
     service { 'hive-metastore':
       ensure    => running,
-      hasstatus => true,
-      subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
       require   => [Package['hive'], Package['hive-metastore'], Class['Hadoop_hive::Init_metastore_schema']],
+      subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
+      hasrestart => true,
+      hasstatus => true,
     }
+    Kerberos::Host_keytab <| title == "hive" |> -> Service["hive-metastore"]
+    File <| title == "/etc/hadoop/conf/core-site.xml" |> -> Service["hive-metastore"]
     File <| tag == 'hive-aux-jar' |> -> Service['hive-metastore']
     Bigtop_file::Env <| title == '/etc/hadoop/conf/hadoop-env.sh' |> ~> Service['hive-metastore']
     Bigtop_file::Site <| tag == 'hadoop-plugin' or title == '/etc/hadoop/conf/core-site.xml' |> ~> Service['hive-metastore']
   }
 
   class database_connector {
+    include hadoop_hive::common_config
 
-    include common
-
-    case $common::metastore_database_type {
+    case $common_config::metastore_database_type {
       'mysql': {
         mysql_connector::link {'/usr/lib/hive/lib/mysql-connector-java.jar':
           require => Package['hive'],
@@ -231,22 +254,28 @@ class hadoop_hive {
         # do nothing
       }
       default: {
-        fail("$common::metastore_database_type is not supported. Supported database types are ", $common::supported_database_types)
+        fail("$common_config::metastore_database_type is not supported. Supported database types are ", $common_config::supported_database_types)
       }
     }
   }
 
   class init_metastore_schema {
 
-    include common
-    include database_connector
+    include hadoop_hive::common_config
+    include hadoop_hive::database_connector
 
     exec { 'init hive-metastore schema':
-      command   => "/usr/lib/hive/bin/schematool -dbType $common::metastore_database_schema_type -initSchema -verbose",
+      command   => "/usr/lib/hive/bin/schematool -dbType $common_config::metastore_database_schema_type -initSchema -verbose",
       require   => [Package['hive'], Class['Hadoop_hive::Database_connector']],
       subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
       logoutput => true,
-      unless    => "/usr/lib/hive/bin/schematool -dbType $common::metastore_database_schema_type -info"
+      unless    => "/usr/lib/hive/bin/schematool -dbType $common_config::metastore_database_schema_type -info"
+    }
+  }
+
+  class hbase {
+    package { 'hive-hbase':
+      ensure => latest,
     }
   }
 }

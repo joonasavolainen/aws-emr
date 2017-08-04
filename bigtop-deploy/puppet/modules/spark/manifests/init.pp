@@ -16,158 +16,158 @@
 class spark {
 
   class deploy ($roles) {
-    if ("spark-client" in $roles) {
-      include client
+    if ('spark-client' in $roles) {
+      include spark::client
     }
 
-    if ("spark-on-yarn" in $roles) {
-      include yarn
+    if ('spark-on-yarn' in $roles) {
+      include spark::yarn
     }
 
-    if ("spark-yarn-slave" in $roles) {
-      include yarn_slave
+    if ('spark-yarn-slave' in $roles) {
+      include spark::yarn_slave
     }
 
-    if ("spark-master" in $roles) {
-      include master
+    if ('spark-master' in $roles) {
+      include spark::master
     }
 
-    if ("spark-worker" in $roles) {
-      include worker
+    if ('spark-worker' in $roles) {
+      include spark::worker
     }
 
-    if ("spark-history-server" in $roles) {
-      include history_server
+    if ('spark-history-server' in $roles) {
+      include spark::history_server
     }
 
-    if ("spark-thriftserver" in $roles) {
-      include thriftserver
+    if ('spark-thriftserver' in $roles) {
+      include spark::thriftserver
     }
   }
 
   class client {
-    include common
+    include spark::common
 
-    package { "spark-python":
+    package { 'spark-python':
       ensure => latest,
-      require => Package["spark-core"],
+      require => Package['spark-core'],
     }
 
-    package { "spark-R":
+    package { 'spark-R':
       ensure => latest,
-      require => Package["spark-core"],
+      require => Package['spark-core'],
     }
 
-    package { "spark-external":
-      ensure => latest,
-      require => Package["spark-core"],
+    package { 'spark-external':
+      ensure  => latest,
+      require => Package['spark-core'],
     }
   }
 
   class master {
-    include common
+    include spark::common
 
-    package { "spark-master":
+    package { 'spark-master':
       ensure => latest,
     }
 
-    service { "spark-master":
+    service { 'spark-master':
       ensure => running,
       subscribe => [
-        Package["spark-master"],
-        Bigtop_file::Env["/etc/spark/conf/spark-env.sh"],
-        Bigtop_file::Spark_conf["/etc/spark/conf/spark-defaults.conf"],
+        Package['spark-master'],
+        Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
+        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
   }
 
   class worker {
-    include common
+    include spark::common
 
-    package { "spark-worker":
+    package { 'spark-worker':
       ensure => latest,
     }
 
-    service { "spark-worker":
+    service { 'spark-worker':
       ensure => running,
       subscribe => [
-        Package["spark-worker"],
-        Bigtop_file::Env["/etc/spark/conf/spark-env.sh"],
-        Bigtop_file::Spark_conf["/etc/spark/conf/spark-defaults.conf"],
+        Package['spark-worker'],
+        Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
+        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
   }
 
   class history_server {
-    include common
+    include spark::common
 
-    package { "spark-history-server":
+    package { 'spark-history-server':
       ensure => latest,
     }
 
-    service { "spark-history-server":
+    service { 'spark-history-server':
       ensure => running,
       subscribe => [
-        Package["spark-history-server"],
-        Bigtop_file::Env["/etc/spark/conf/spark-env.sh"],
-        Bigtop_file::Spark_conf["/etc/spark/conf/spark-defaults.conf"],
+        Package['spark-history-server'],
+        Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
+        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
   }
 
   class thriftserver {
-    include common
+    include spark::common
 
-    package { "spark-thriftserver":
+    package { 'spark-thriftserver':
       ensure => latest,
     }
 
-    service { "spark-thriftserver":
+    service { 'spark-thriftserver':
       ensure => running,
       subscribe => [
-        Package["spark-thriftserver"],
-        Bigtop_file::Env["/etc/spark/conf/spark-env.sh"],
-        Bigtop_file::Spark_conf["/etc/spark/conf/spark-defaults.conf"],
+        Package['spark-thriftserver'],
+        Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
+        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
-    Service<| title == "hive-metastore" |> -> Service["spark-thriftserver"]
+    Service<| title == 'hive-metastore' |> -> Service['spark-thriftserver']
   }
 
   class yarn {
-    include common
-    include datanucleus
+    include spark::common
+    include spark::datanucleus
   }
 
   class yarn_slave {
-    include yarn_shuffle
-    include datanucleus
+    include spark::yarn_shuffle
+    include spark::datanucleus
   }
 
   class yarn_shuffle {
-    package { "spark-yarn-shuffle":
+    package { 'spark-yarn-shuffle':
       ensure => latest,
     }
   }
 
   class datanucleus {
-    package { "spark-datanucleus":
+    package { 'spark-datanucleus':
       ensure => latest,
     }
   }
 
   class common(
-      $master_url = "yarn",
+      $master_url = 'yarn',
       $master_host = $fqdn,
       $master_port = 7077,
       $worker_port = 7078,
       $master_ui_port = 8080,
       $worker_ui_port = 8081,
       $history_ui_port = 18080,
-      $thriftserver_bind_host = "0.0.0.0",
+      $thriftserver_bind_host = '0.0.0.0',
       $thriftserver_port = 10001,
       $spark_log4j_overrides = {},
       $spark_env_overrides = {},
@@ -185,19 +185,28 @@ class spark {
       $use_hive = false,
       $use_emrfs = false,
       $use_alluxio = false,
+      $use_aws_hm_client = false,
       $use_yarn_shuffle_service = false,
-      $event_log_dir =  "hdfs:///var/log/spark/apps",
-      $history_log_dir = "hdfs:///var/log/spark/apps",
+      $event_log_dir =  'hdfs:///var/log/spark/apps',
+      $history_log_dir = 'hdfs:///var/log/spark/apps',
   ) {
 
     if ($hadoop_lzo_codec) {
       include hadoop::lzo_codec
-      Package["hadoop-lzo"] -> Bigtop_file::Env["/etc/spark/conf/spark-env.sh"]
+      Package['hadoop-lzo'] -> Bigtop_file::Env['/etc/spark/conf/spark-env.sh']
     }
 
     if ($use_emrfs) {
       include emrfs::library
-      Bigtop_file::Site["/usr/share/aws/emr/emrfs/conf/emrfs-site.xml"] -> Bigtop_file::Env["/etc/spark/conf/spark-env.sh"]
+      Bigtop_file::Site['/usr/share/aws/emr/emrfs/conf/emrfs-site.xml'] -> Bigtop_file::Env['/etc/spark/conf/spark-env.sh']
+    }
+
+    if ($use_hive) or ($use_aws_hm_client) {
+      bigtop_file::site { '/etc/spark/conf/hive-site.xml':
+        content => template('spark/hive-site.xml'),
+        overrides => $hive_site_overrides,
+        require => Package['spark-core'],
+      }
     }
 
     if ($use_hive) {
@@ -208,40 +217,38 @@ class spark {
         $metastore_database_name
       )
       $metastore_database_driver_class = get_metastore_driver_class($metastore_database_type)
-
-      bigtop_file::site { "/etc/spark/conf/hive-site.xml":
-        content => template("spark/hive-site.xml"),
-        overrides => $hive_site_overrides,
-        require => Package["spark-core"],
-      }
     }
 
-    package { "spark-core":
+    if ($use_aws_hm_client) {
+      include aws_hm_client::library
+    }
+
+    package { 'spark-core':
       ensure => latest,
     }
 
-    bigtop_file::env { "/etc/spark/conf/spark-env.sh":
-      content => template("spark/spark-env.sh"),
+    bigtop_file::env { '/etc/spark/conf/spark-env.sh':
+      content => template('spark/spark-env.sh'),
       overrides => $spark_env_overrides,
-      require => Package["spark-core"],
+      require => Package['spark-core'],
     }
 
-    bigtop_file::spark_conf { "/etc/spark/conf/spark-defaults.conf":
-      content => template("spark/spark-defaults.conf"),
+    bigtop_file::spark_conf { '/etc/spark/conf/spark-defaults.conf':
+      content => template('spark/spark-defaults.conf'),
       overrides => $spark_defaults_overrides,
-      require => Package["spark-core"],
+      require => Package['spark-core'],
     }
 
-    bigtop_file::properties { "/etc/spark/conf/log4j.properties":
+    bigtop_file::properties { '/etc/spark/conf/log4j.properties':
       overrides => $spark_log4j_overrides,
-      source => "/etc/spark/conf/log4j.properties.template",
-      require => Package["spark-core"],
+      source => '/etc/spark/conf/log4j.properties.template',
+      require => Package['spark-core'],
     }
 
-    bigtop_file::properties { "/etc/spark/conf/metrics.properties":
+    bigtop_file::properties { '/etc/spark/conf/metrics.properties':
       overrides => $spark_metrics_overrides,
-      source => "/etc/spark/conf/metrics.properties.template",
-      require => Package["spark-core"],
+      source => '/etc/spark/conf/metrics.properties.template',
+      require => Package['spark-core'],
     }
   }
 }
