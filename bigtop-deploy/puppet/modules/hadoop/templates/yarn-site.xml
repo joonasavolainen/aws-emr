@@ -238,7 +238,8 @@
         /usr/lib/spark/yarn/lib/datanucleus-core.jar,
         /usr/lib/spark/yarn/lib/datanucleus-rdbms.jar,
 <% end -%>
-        /usr/share/aws/emr/cloudwatch-sink/lib/*
+        /usr/share/aws/emr/cloudwatch-sink/lib/*,
+        /usr/share/aws/aws-java-sdk/*
      </value>
   </property>
 <% if @yarn_scheduler_minimum_allocation_mb -%>

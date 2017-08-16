@@ -107,7 +107,7 @@ class hue {
       refreshonly => true,
       logoutput   => true,
     }
-    Exec['hue_syncdb'] -> Exec['hue_migrate']
+    Class['Bigtop_mysql::Server'] -> Exec['hue_syncdb'] -> Exec['hue_migrate']
 
     service { "hue":
       ensure => running,

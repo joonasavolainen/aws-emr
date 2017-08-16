@@ -77,6 +77,7 @@ class hadoop_hive {
                        $user_log_dir = undef,
                        $java_tmp_dir = undef,
                        $use_dynamodb = false,
+                       $use_aws_hm_client = false,
                        $use_emr_goodies = false,
                        $use_kinesis = false) {
     include hadoop_hive::client_package
@@ -106,6 +107,17 @@ class hadoop_hive {
         target  => '/usr/share/aws/emr/ddb/lib/emr-ddb-hive.jar',
         tag     => 'hive-aux-jar',
         require => [Package['emr-ddb'], Package['hive']]
+      }
+    }
+
+    if ($use_aws_hm_client) {
+      include aws_hm_client::library
+
+      file { '/usr/lib/hive/auxlib/aws-glue-datacatalog-hive2-client.jar':
+        ensure  => link,
+        target  => '/usr/share/aws/hmclient/lib/aws-glue-datacatalog-hive2-client.jar',
+        tag     => 'hive-aux-jar',
+        require => [Package['aws-hm-client'], Package['hive']]
       }
     }
 

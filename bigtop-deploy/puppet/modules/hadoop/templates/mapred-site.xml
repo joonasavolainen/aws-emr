@@ -255,7 +255,8 @@
 <% if @use_alluxio -%>
     /usr/lib/alluxio/alluxio-core-client-jar-with-dependencies.jar,
 <% end -%>
-    /usr/share/aws/emr/cloudwatch-sink/lib/*
+    /usr/share/aws/emr/cloudwatch-sink/lib/*,
+    /usr/share/aws/aws-java-sdk/*
   </value>
 </property>
 
