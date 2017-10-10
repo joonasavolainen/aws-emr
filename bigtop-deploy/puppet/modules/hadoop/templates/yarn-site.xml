@@ -19,7 +19,33 @@
 
 <% resourcemanager_hosts = Array(@hadoop_rm_host) -%>
 <configuration>
-<% if @hadoop_security_authentication == "kerberos" %>
+<% if @hadoop_security_authentication == "kerberos" -%>
+  <!-- JobTracker security configs -->
+  <property>
+    <name>yarn.timeline-service.http-authentication.type</name>
+    <value>kerberos</value>
+  </property>
+
+  <property>
+    <name>yarn.timeline-service.principal</name>
+    <value>yarn/_HOST@<%= @kerberos_realm %></value>
+  </property>
+
+  <property>
+    <name>yarn.timeline-service.keytab</name>
+    <value>/etc/yarn.keytab</value>
+  </property>
+
+  <property>
+    <name>yarn.timeline-service.http-authentication.kerberos.principal</name>
+    <value>HTTP/_HOST@<%= @kerberos_realm %></value>
+  </property>
+
+  <property>
+    <name>yarn.timeline-service.http-authentication.kerberos.keytab</name>
+    <value>/etc/yarn.keytab</value>
+  </property>
+ 
   <!-- JobTracker security configs -->
   <property>
     <name>yarn.resourcemanager.principal</name>
@@ -55,14 +81,21 @@
     <name>yarn.nodemanager.linux-container-executor.group</name>
     <value>yarn</value>
   </property>
-<% end %>
+<% end -%>
 
-<% if @hadoop_ps_host %>
+<% if @yarn_timeline_service_host -%>
+  <property>
+    <name>yarn.timeline-service.hostname</name>
+    <value><%= @yarn_timeline_service_host %></value>
+  </property>
+<% end -%>
+
+<% if @hadoop_ps_host -%>
   <property>
     <name>yarn.web-proxy.address</name>
     <value><%= @hadoop_ps_host %>:<%= @hadoop_ps_port %></value>
   </property> 
-<% end %>
+<% end -%>
 
 <% if @yarn_resourcemanager_ha_enabled -%>
 
@@ -170,12 +203,12 @@
     <name>yarn.log-aggregation-enable</name>
     <value>true</value>
   </property>
-<% if @yarn_log_server_url %>
+<% if @yarn_log_server_url -%>
   <property>
     <name>yarn.log.server.url</name>
     <value><%= @yarn_log_server_url %></value>
   </property>
-<% end %>
+<% end -%>
   <property>
     <name>yarn.dispatcher.exit-on-error</name>
     <value>true</value>

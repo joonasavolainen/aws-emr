@@ -30,6 +30,7 @@ class zeppelin {
       $hadoop_lzo_codec = false,
       $use_emrfs = false,
       $use_hive = false,
+      $use_aws_hm_client = false,
       $zeppelin_env_overrides = {}) {
     package { 'zeppelin':
       ensure => latest,

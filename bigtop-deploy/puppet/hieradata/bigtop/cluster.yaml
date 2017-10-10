@@ -114,6 +114,7 @@ hadoop::common_yarn::hadoop_ps_port: "20888"
 hadoop::common_yarn::hadoop_rm_host: "%{hiera('bigtop::hadoop_head_node')}"
 # actually default but needed for hue::server::rm_port here
 hadoop::common_yarn::hadoop_rm_port: "8032"
+hadoop::common_yarn::yarn_timeline_service_host: "%{hiera('bigtop::hadoop_head_node')}"
 
 hadoop::common_mapred_app::jobtracker_host: "%{hiera('bigtop::hadoop_head_node')}"
 hadoop::common_mapred_app::mapreduce_jobhistory_host: "%{hiera('bigtop::hadoop_head_node')}"

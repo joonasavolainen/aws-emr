@@ -101,6 +101,9 @@ $roles_map = {
   hue => {
     gateway_server => ["hue-server"],
   },
+  livy => {
+    master => ["livy-server"],
+  },
   mahout => {
     client => ["mahout-client"],
   },
@@ -249,6 +252,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "hue",
     "kafka",
     "kerberos",
+    "livy",
     "mahout",
     "phoenix",
     "presto",

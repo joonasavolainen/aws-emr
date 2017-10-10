@@ -68,6 +68,9 @@ class hadoop_oozie (
     $symlink_hive_conf = false,
     $symlink_pig_conf = false,
     $symlink_tez_conf = false,
+    $use_spark = false,
+    $use_sqoop = false,
+    $use_pig = false,
   ) inherits hadoop_oozie {
 
     include hadoop::init_hdfs
@@ -85,6 +88,76 @@ class hadoop_oozie (
     }
 
     Exec['init hdfs'] -> Exec['Oozie sharelib init']
+
+    $hdfs_rm = 'hdfs dfs -rm'
+    $hdfs_put = 'hdfs dfs -put -f'
+    $py4j_zip_path = "/usr/lib/spark/python/lib/py4j-*-src.zip"
+    $pyspark_zip_path = "/usr/lib/spark/python/lib/pyspark.zip"
+    $mariadb_connector_jar_path = "/usr/share/java/mariadb-connector-java.jar"
+    $hive_site_path = "/etc/hive/conf.dist/hive-site.xml"
+    $jackson_xc_jar_name = "jackson-xc-*.jar"
+    $jackson_jaxrs_jar_name = "jackson-jaxrs-*.jar"
+    $hadoop_yarn_lib_dir = "/usr/lib/hadoop-yarn/lib"
+    $oozie_sharelib_spark_dir = "/user/oozie/share/lib/lib_*/spark"
+    $oozie_sharelib_sqoop_dir = "/user/oozie/share/lib/lib_*/sqoop"
+    $oozie_sharelib_pig_dir = "/user/oozie/share/lib/lib_*/pig"
+
+    if ($use_spark) {
+      exec { 'Oozie PySpark sharelib init':
+        path      => '/bin:/usr/bin:/usr/lib/oozie/bin',
+        user      => 'oozie',
+        command   => "$hdfs_put $py4j_zip_path $pyspark_zip_path $oozie_sharelib_spark_dir",
+        tries     => $init_sharelib_tries,
+        try_sleep => $init_sharelib_try_sleep,
+        timeout   => $init_sharelib_timeout,
+        require   => [
+          Package['oozie'],
+          Package['spark-core'],
+          Package['hadoop-hdfs'],
+          Exec['Oozie sharelib init'],
+        ],
+        logoutput => true
+      }
+    }
+
+    if ($use_sqoop) {
+      exec { 'Oozie Sqoop sharelib init':
+        path      => '/bin:/usr/bin:/usr/lib/oozie/bin',
+        user      => 'oozie',
+        command   => "$hdfs_put $mariadb_connector_jar_path $oozie_sharelib_sqoop_dir",
+        tries     => $init_sharelib_tries,
+        try_sleep => $init_sharelib_try_sleep,
+        timeout   => $init_sharelib_timeout,
+        require   => [
+          Package['oozie'],
+          Package['hadoop-hdfs'],
+          Package['mariadb-connector-java'],
+          Exec['Oozie sharelib init'],
+        ],
+        logoutput => true
+      }
+    }
+
+    if ($use_pig) {
+      exec { 'Oozie Pig sharelib init':
+        path      => '/bin:/usr/bin:/usr/lib/oozie/bin',
+        user      => 'oozie',
+        command   => "$hdfs_rm $oozie_sharelib_pig_dir/$jackson_xc_jar_name $oozie_sharelib_pig_dir/$jackson_jaxrs_jar_name && \
+                      $hdfs_put $hadoop_yarn_lib_dir/$jackson_xc_jar_name $hadoop_yarn_lib_dir/$jackson_jaxrs_jar_name $oozie_sharelib_pig_dir && \
+                      $hdfs_put $hive_site_path $oozie_sharelib_pig_dir",
+        tries     => $init_sharelib_tries,
+        try_sleep => $init_sharelib_try_sleep,
+        timeout   => $init_sharelib_timeout,
+        require   => [
+          Package['oozie'],
+          Package['hadoop-hdfs'],
+          Package["hive"],
+          Package['pig'],
+          Exec['Oozie sharelib init'],
+        ],
+        logoutput => true
+      }
+    }
 
     if ($kerberos_realm and $kerberos_realm != "") {
       require kerberos::client

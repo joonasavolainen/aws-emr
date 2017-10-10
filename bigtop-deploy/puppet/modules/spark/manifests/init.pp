@@ -76,7 +76,7 @@ class spark {
       subscribe => [
         Package['spark-master'],
         Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
-        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
+        Bigtop_file::Conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
@@ -94,7 +94,7 @@ class spark {
       subscribe => [
         Package['spark-worker'],
         Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
-        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
+        Bigtop_file::Conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
@@ -112,7 +112,7 @@ class spark {
       subscribe => [
         Package['spark-history-server'],
         Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
-        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
+        Bigtop_file::Conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
@@ -130,7 +130,7 @@ class spark {
       subscribe => [
         Package['spark-thriftserver'],
         Bigtop_file::Env['/etc/spark/conf/spark-env.sh'],
-        Bigtop_file::Spark_conf['/etc/spark/conf/spark-defaults.conf'],
+        Bigtop_file::Conf['/etc/spark/conf/spark-defaults.conf'],
       ],
       hasstatus => true,
     }
@@ -233,7 +233,7 @@ class spark {
       require => Package['spark-core'],
     }
 
-    bigtop_file::spark_conf { '/etc/spark/conf/spark-defaults.conf':
+    Bigtop_file::Conf { '/etc/spark/conf/spark-defaults.conf':
       content => template('spark/spark-defaults.conf'),
       overrides => $spark_defaults_overrides,
       require => Package['spark-core'],

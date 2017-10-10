@@ -30,6 +30,9 @@ class kerberos {
       $kdc_server = 'localhost',
       $kdc_port = '88',
       $admin_port = 749,
+      $admin_password = 'secure',
+      $principal_creation_timeout = 300, # 5 minutes
+      $log_dir = "/var/log/kerberos",
       $keytab_export_dir = "/var/lib/bigtop_keytabs") {
 
     case $operatingsystem {
@@ -56,8 +59,15 @@ class kerberos {
         }
     }
 
+    file { $log_dir:
+      ensure => 'directory',
+      owner => "root",
+      group => "root",
+    }
+
     file { "/etc/krb5.conf":
       content => template('kerberos/krb5.conf'),
+      require => File[$kerberos::site::log_dir],
       owner => "root",
       group => "root",
       mode => "0644",
@@ -104,7 +114,8 @@ class kerberos {
 
     exec { "kdb5_util":
       path => $exec_path,
-      command => "rm -f /etc/kadm5.keytab ; kdb5_util -P cthulhu -r ${realm} create -s && kadmin.local -q 'cpw -pw secure kadmin/admin'",
+      environment => ["PASSWORD=${admin_password}"],
+      command => "rm -f /etc/kadm5.keytab ; kdb5_util -P \"\$PASSWORD\" -r ${realm} create -s && kadmin.local -q \"cpw -pw \\\"\$PASSWORD\\\" kadmin/admin\"",
       
       creates => "${kdc_etc_path}/stash",
 
@@ -154,30 +165,37 @@ class kerberos {
 
     $principal = "$title/$::fqdn"
     $keytab    = "$kerberos::site::keytab_export_dir/$title.keytab"
+    $admin_password = $kerberos::site::admin_password
+    $principal_creation_timeout = $kerberos::site::principal_creation_timeout
 
     exec { "addprinc.$title":
       path => $kerberos::site::exec_path,
-      command => "kadmin -w secure -p kadmin/admin -q 'addprinc -randkey $principal'",
-      unless => "kadmin -w secure -p kadmin/admin -q listprincs | grep -q $principal",
+      environment => ["PASSWORD=${admin_password}"],
+      command => "kadmin -w \"\$PASSWORD\" -p kadmin/admin -q 'addprinc -randkey $principal'",
+      unless => "kadmin -w \"\$PASSWORD\" -p kadmin/admin -q listprincs | grep -q $principal",
+      tries => 120,  # Adding tries if slave node come up before the kdc is ready
+      try_sleep => 5,
+      timeout => $principal_creation_timeout,
       require => Package[$kerberos::site::package_name_client],
     } 
     ->
     exec { "xst.$title":
       path    => $kerberos::site::exec_path, 
-      command => "kadmin -w secure -p kadmin/admin -q 'xst -k $keytab $principal'",
+      environment => ["PASSWORD=${admin_password}"],
+      command => "kadmin -w \"\$PASSWORD\" -p kadmin/admin -q 'xst -k $keytab $principal'",
       unless  => "klist -kt $keytab 2>/dev/null | grep -q $principal",
       require => File[$kerberos::site::keytab_export_dir],
     }
   }
 
-  define host_keytab($princs = [ $title ], $spnego = disabled,
+  define host_keytab($princs = [ $title ], $spnego = false,
     $owner = $title, $group = "", $mode = "0400",
   ) {
     $keytab = "/etc/$title.keytab"
 
     $internal_princs = $spnego ? {
-      /(true|enabled)/ => [ 'HTTP' ],
-      default          => [ ],
+      true => [ 'HTTP' ],
+      default => [ ],
     }
     realize(Kerberos::Principal[$internal_princs])
 

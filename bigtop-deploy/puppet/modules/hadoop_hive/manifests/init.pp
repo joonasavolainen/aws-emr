@@ -119,6 +119,13 @@ class hadoop_hive {
         tag     => 'hive-aux-jar',
         require => [Package['aws-hm-client'], Package['hive']]
       }
+
+      file { '/usr/lib/hive/auxlib/hive-openx-serde.jar':
+        ensure  => link,
+        target  => '/usr/share/java/Hive-JSON-Serde/hive-openx-serde.jar',
+        tag     => 'hive-aux-jar',
+        require => [Package['aws-hm-client'], Package['hive']]
+      }
     }
 
     if ($use_emr_goodies) {

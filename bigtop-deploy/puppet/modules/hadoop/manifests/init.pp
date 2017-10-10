@@ -116,14 +116,15 @@ class hadoop ($hadoop_security_authentication = "simple",
     include hadoop::common_hdfs
 
     exec { 'hdfs ready':
-      path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
-      command   => 'hdfs dfsadmin -safemode wait',
-      tries     => 60,
-      try_sleep => 1,
-      require   => [Package['hadoop-hdfs'],
-        Bigtop_file::Site['/etc/hadoop/conf/core-site.xml'],
-        Bigtop_file::Site['/etc/hadoop/conf/hdfs-site.xml']],
-      logoutput => true
+        path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
+        command   => 'hdfs dfsadmin -safemode wait',
+        tries     => 60,
+        user      => 'hdfs',
+        try_sleep => 1,
+        require   => [Package['hadoop-hdfs'],
+          Bigtop_file::Site['/etc/hadoop/conf/core-site.xml'],
+          Bigtop_file::Site['/etc/hadoop/conf/hdfs-site.xml']],
+        logoutput => true
     }
 
     file { '/var/lib/hadoop-hdfs/init-hcfs.json':
@@ -271,9 +272,11 @@ class hadoop ($hadoop_security_authentication = "simple",
       $yarn_resourcemanager_ha_enabled = undef,
       $yarn_resourcemanager_cluster_id = "ha-rm-uri",
       $yarn_resourcemanager_zk_address = $hadoop::zk,
+      $yarn_timeline_service_host = undef,
       # work around https://issues.apache.org/jira/browse/YARN-2847 by default
       $container_executor_banned_users = "doesnotexist",
       $container_executor_min_user_id = "499",
+      $container_executor_allowed_system_users = undef,
       $hadoop_lzo_codec = $hadoop::hadoop_lzo_codec,
       $use_emrfs = $hadoop::use_emrfs,
       $use_dynamodb = $hadoop::use_dynamodb,
@@ -737,7 +740,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $secret = "hadoop httpfs secret",
       $generate_secrets = $hadoop::generate_secrets,
       $hadoop_core_proxyusers = $hadoop::proxyusers,
-      $hadoop_security_authentcation = $hadoop::hadoop_security_authentication,
+      $hadoop_security_authentication = $hadoop::hadoop_security_authentication,
       $kerberos_realm = $hadoop::kerberos_realm,
       $httpfs_site_overrides = {},
       $httpfs_env_overrides = {},
@@ -876,25 +879,9 @@ class hadoop ($hadoop_security_authentication = "simple",
     Kerberos::Host_keytab <| title == 'kms' |> -> Service['hadoop-kms']
   }
 
-  class kinit {
-    include hadoop::common_hdfs
-
-    exec { "HDFS kinit":
-      command => "/usr/bin/kinit -kt /etc/hdfs.keytab hdfs/$fqdn && /usr/bin/kinit -R",
-      user    => "hdfs",
-      require => Kerberos::Host_keytab["hdfs"],
-    }
-  }
-
-  class create_hdfs_dirs($hdfs_dirs_meta,
-      $hadoop_security_authentcation = $hadoop::hadoop_security_authentication ) inherits hadoop {
+  class create_hdfs_dirs($hdfs_dirs_meta) {
     $user = $hdfs_dirs_meta[$title][user]
     $perm = $hdfs_dirs_meta[$title][perm]
-
-    if ($hadoop_security_authentication == "kerberos") {
-      require hadoop::kinit
-      Exec["HDFS kinit"] -> Exec["HDFS init $title"]
-    }
 
     exec { "HDFS init $title":
       user => "hdfs",
@@ -904,14 +891,8 @@ class hadoop ($hadoop_security_authentication = "simple",
     Exec <| title == "activate nn1" |>  -> Exec["HDFS init $title"]
   }
 
-  class rsync_hdfs($files,
-      $hadoop_security_authentcation = $hadoop::hadoop_security_authentication ) inherits hadoop {
+  class rsync_hdfs($files) {
     $src = $files[$title]
-
-    if ($hadoop_security_authentication == "kerberos") {
-      require hadoop::kinit
-      Exec["HDFS kinit"] -> Exec["HDFS init $title"]
-    }
 
     exec { "HDFS rsync $title":
       user => "hdfs",
@@ -1189,6 +1170,7 @@ class hadoop ($hadoop_security_authentication = "simple",
 
     exec { "yarn rmadmin -refreshQueues":
       subscribe => [Bigtop_file::Site["/etc/hadoop/conf/capacity-scheduler.xml"]],
+      user => 'yarn',
       require => Service["hadoop-yarn-resourcemanager"],
       path => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
     }
@@ -1287,7 +1269,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
   }
 
-  class mapred_app {
+  class mapred_app ($hadoop_security_authentication = $hadoop::hadoop_security_authentication) inherits hadoop {
     include hadoop::common_mapred_app
 
     hadoop::create_storage_dir { $hadoop::common_mapred_app::mapred_data_dirs: } ->
@@ -1299,14 +1281,30 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => [Package["hadoop-mapreduce"]],
     }
 
-    if ($hadoop::common_mapred_app::yarn_app_mapreduce_am_jhs_backup_dir) {
-      file { $hadoop::common_mapred_app::yarn_app_mapreduce_am_jhs_backup_dir:
+    $yarn_mr_jhs_backup_dir = $hadoop::common_mapred_app::yarn_app_mapreduce_am_jhs_backup_dir
+    if ($yarn_mr_jhs_backup_dir) {
+      file { $yarn_mr_jhs_backup_dir:
         ensure => directory,
         owner => yarn,
         group => yarn,
         mode => '775',
         require => [Package["hadoop-mapreduce"]],
       }
+      # In a kerberized cluster history server logs are owned by user running the application,
+      # the following permission will allow all users to write logs in history folder while making sure
+      # only the owner has the read access to the files. By only setting 1777 to the top level folder
+      # does not serve the purpose as the sub folders are created with permission 775 which is too open.
+      # TODO: Fix permissions of map reduce history folder for better security https://sim.amazon.com/issues/P9013293
+      if ($hadoop_security_authentication == "kerberos") {
+        exec { 'change jobhistory folder permissions':
+          path    => ['/bin','/sbin','/usr/bin','/usr/sbin'],
+          command => "chmod 1777 ${yarn_mr_jhs_backup_dir} && \
+                      setfacl -d -m g::rwx ${yarn_mr_jhs_backup_dir} && \
+                      setfacl -d -m o::wx ${yarn_mr_jhs_backup_dir}",
+          require => File[$yarn_mr_jhs_backup_dir],
+          logoutput => true
+        }
+      }  
     }
   }
 

@@ -78,6 +78,15 @@ class presto {
       $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
     }
 
+    # EMR-Dp-1869 
+    if ($presto_hive_overrides['hive.external-table-writable'] != undef) {
+      notice("hive.external-table-writable is being replaced by hive.non-managed-table-writes-enabled")
+      $hive_external_table_writable = $presto_hive_overrides['hive.external-table-writable']
+      $presto_final_hive_overrides = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
+    } else {
+      $presto_final_hive_overrides = $presto_hive_overrides
+    }
+
     file { '/etc/presto/conf/jvm.config':
       content => template('presto/jvm.config'),
       require => Package['presto']
@@ -110,7 +119,7 @@ class presto {
     bigtop_file::properties { '/etc/presto/conf/catalog/hive.properties':
       content   => template('presto/hive.properties'),
       require   => Package['presto'],
-      overrides => $presto_hive_overrides
+      overrides => $presto_final_hive_overrides
     }
 
     if ($presto_mysql_overrides != undef) {
