@@ -65,9 +65,7 @@ class hcatalog {
     include hcatalog::common
   }
 
-  class server(
-    $kerberos_realm = '',
-  ) {
+  class server {
     include hcatalog::common
 
     package { 'hive-hcatalog-server':
@@ -84,15 +82,30 @@ class hcatalog {
       hasstatus => true,
     }
     Exec<| title == 'init hive-metastore schema' |> -> Service['hive-hcatalog-server']
+    Kerberos::Host_keytab <| title == 'hive' |> -> Service["hive-hcatalog-server"]
   }
 
   class webhcat {
     class common(
+      $kerberos_realm = '',
+      $generate_secrets = false,
+      $kerberos_secret = undef,
       $webhcat_env_overrides = {},
       $webhcat_log4j2_overrides = {},
       $webhcat_site_overrides = {},
       $server_port = '50111',
     ) {
+
+      if ($kerberos_realm != '') {
+        $templeton_kerberos_secret = $generate_secrets ? {
+          true => trocla('templeton_kerberos_secret', 'plain'),
+          default => $kerberos_secret
+        }
+        if (($templeton_kerberos_secret == undef) or ($templeton_kerberos_secret == '')) {
+          fail('Webhcat templeton kerberos secret must be set')
+        }
+      }
+
       package { 'hive-webhcat':
         ensure => latest,
       }
@@ -124,6 +137,10 @@ class hcatalog {
         ensure => latest,
       }
 
+      if ($kerberos_realm != '') {
+        include hadoop_hive::hive_keytab
+      }
+
       service { 'hive-webhcat-server':
         ensure => running,
         require => Package['hive-webhcat-server'],
@@ -133,6 +150,8 @@ class hcatalog {
         hasrestart => true,
         hasstatus => true,
       } 
+
+      Kerberos::Host_keytab <| title == 'hive' |> -> Service["hive-webhcat-server"]
     }
   }
 }

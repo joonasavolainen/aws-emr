@@ -19,5 +19,15 @@
 <configuration>
     <% if @use_hive -%>
         <%= scope.function_template(['hadoop_hive/metastore_config.erb']) -%>
+        <% if @kerberos_realm != '' -%>
+          <property>
+            <name>hive.metastore.kerberos.principal</name>
+            <value>hive/_HOST@<%= @kerberos_realm %></value>
+          </property>
+          <property>
+            <name>hive.metastore.sasl.enabled</name>
+            <value>true</value>
+          </property>
+        <% end -%>
     <% end -%>
 </configuration>

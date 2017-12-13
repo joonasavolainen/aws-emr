@@ -14,6 +14,8 @@
 # limitations under the License.
 
 class hadoop ($hadoop_security_authentication = "simple",
+  $kerberos_cross_realm_trust_realm = undef,
+  $kerberos_cross_realm_trust_enabled = hiera('kerberos::site::cross_realm_trust_enabled', false),
   $ha = "disabled",
   $hadoop_namenode_host = $fqdn,
   $hadoop_namenode_port = "8020",
@@ -36,6 +38,9 @@ class hadoop ($hadoop_security_authentication = "simple",
   $generate_secrets = false,
 ) {
 
+  if ($kerberos_cross_realm_trust_enabled and $kerberos_cross_realm_trust_realm in [undef, '']) {
+    fail("Kerberos cross realm trust domain is not defined when kerberos cross realm trust is enabled.")
+  }
   include stdlib
 
   class deploy ($roles) {
@@ -274,7 +279,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $yarn_resourcemanager_zk_address = $hadoop::zk,
       $yarn_timeline_service_host = undef,
       # work around https://issues.apache.org/jira/browse/YARN-2847 by default
-      $container_executor_banned_users = "doesnotexist",
+      $container_executor_banned_users = undef,
       $container_executor_min_user_id = "499",
       $container_executor_allowed_system_users = undef,
       $hadoop_lzo_codec = $hadoop::hadoop_lzo_codec,

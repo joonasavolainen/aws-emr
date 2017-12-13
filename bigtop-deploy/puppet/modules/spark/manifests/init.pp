@@ -67,6 +67,10 @@ class spark {
   class master {
     include spark::common
 
+    if ($spark::common::kerberos_realm != '') {
+      fail('kerberos is not yet supported for spark master.')
+    }
+
     package { 'spark-master':
       ensure => latest,
     }
@@ -84,6 +88,10 @@ class spark {
 
   class worker {
     include spark::common
+
+    if ($spark::common::kerberos_realm != '') {
+      fail('kerberos is not yet supported for spark worker.')
+    }
 
     package { 'spark-worker':
       ensure => latest,
@@ -107,6 +115,8 @@ class spark {
       ensure => latest,
     }
 
+    Kerberos::Host_keytab <| title == 'spark' |> -> Service['spark-history-server']
+
     service { 'spark-history-server':
       ensure => running,
       subscribe => [
@@ -120,6 +130,10 @@ class spark {
 
   class thriftserver {
     include spark::common
+
+    if ($spark::common::kerberos_realm != '') {
+      fail('kerberos is not yet supported for spark thrift server.')
+    }
 
     package { 'spark-thriftserver':
       ensure => latest,
@@ -160,6 +174,7 @@ class spark {
   }
 
   class common(
+      $kerberos_realm = '',
       $master_url = 'yarn',
       $master_host = $fqdn,
       $master_port = 7077,
@@ -217,6 +232,12 @@ class spark {
         $metastore_database_name
       )
       $metastore_database_driver_class = get_metastore_driver_class($metastore_database_type)
+    }
+
+    if ($kerberos_realm != '') {
+      kerberos::host_keytab { 'spark':
+        spnego => true,
+      }
     }
 
     if ($use_aws_hm_client) {

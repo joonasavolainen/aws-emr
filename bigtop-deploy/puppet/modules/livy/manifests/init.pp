@@ -24,6 +24,7 @@ class livy {
     $livy_conf_overrides  = {},
     $livy_env_overrides   = {},
     $livy_log4j_overrides = {},
+    $kerberos_realm = '',
   ) {
 
     package { 'livy':
@@ -48,10 +49,17 @@ class livy {
       require => Package['livy'],
     }
 
+    if ($kerberos_realm != '') {
+      kerberos::host_keytab { 'livy':
+        spnego => true,
+      }
+    }
   }
 
   class server {
     include livy::common
+
+    Kerberos::Host_keytab <| title == 'livy' |> -> Service['livy-server']
 
     service { 'livy-server':
       ensure     => running,

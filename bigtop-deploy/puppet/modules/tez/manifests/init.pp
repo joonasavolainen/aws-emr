@@ -54,6 +54,7 @@ class tez {
       path => '/bin:/usr/bin/',
       command   => "$hdfs_mv tez.tar.gz $tez_tarball_path",
       unless    => "$hdfs_ls $tez_tarball_path",
+      user      => 'hdfs',
       tries     => 540,
       try_sleep => 5,
       timeout   => 2700,

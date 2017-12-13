@@ -19,6 +19,10 @@ class zeppelin {
     if ('zeppelin-server' in $roles) {
       include zeppelin::server
     }
+
+    if ('zeppelin-user' in $roles) {
+      include zeppelin::zeppelin_user
+    }
   }
 
   class server(
@@ -31,7 +35,10 @@ class zeppelin {
       $use_emrfs = false,
       $use_hive = false,
       $use_aws_hm_client = false,
-      $zeppelin_env_overrides = {}) {
+      $zeppelin_env_overrides = {},
+      $kerberos_realm = undef,
+      $use_kerberos = (hiera("hadoop::hadoop_security_authentication", undef) == 'kerberos')) {
+  
     package { 'zeppelin':
       ensure => latest,
     }
@@ -48,11 +55,6 @@ class zeppelin {
       owner   => 'zeppelin',
       group   => 'zeppelin',
     }
-
-    # Build matplotlib cache ahead of time and to prevent unnecessary warnings
-    exec { 'Build matplotlib font cache':
-      command => '/usr/bin/python -c "import matplotlib; matplotlib.use(\'agg\'); import matplotlib.pyplot"',
-    }
     
     service { 'zeppelin':
       ensure     => running,
@@ -63,6 +65,21 @@ class zeppelin {
 
     if ($use_hive) {
       File <| title == '/etc/hive/conf/hive-site.xml' |> ~> Service['zeppelin']
+    }
+
+    if ($use_kerberos) {
+      kerberos::host_keytab { 'zeppelin': }
+    }
+  }
+
+  class zeppelin_user {
+    user { 'zeppelin':
+      ensure     => present,
+      system     => true,
+      managehome => true,
+      home       => '/var/lib/zeppelin',
+      shell      => '/sbin/nologin',
+      comment    => 'Zeppelin',
     }
   }
 }

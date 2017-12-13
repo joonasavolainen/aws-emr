@@ -63,6 +63,24 @@
     <value><%= @hadoop_security_authentication %></value>
   </property>
 
+<% if @kerberos_cross_realm_trust_enabled -%>
+  <property>
+    <name>hadoop.security.auth_to_local</name>
+    <value>
+      RULE:[1:$1@$0](.*@<%= Regexp.quote(@kerberos_cross_realm_trust_realm) %>)s/@.*///L
+      RULE:[2:$1@$0](.*@<%= Regexp.quote(@kerberos_cross_realm_trust_realm) %>)s/@.*///L
+      DEFAULT
+    </value>
+  </property>
+<!--Without this executing hadoop jobs on cross_realm
+    clusters will fail on TOKEN_DELEGATION_ERROR
+    More info: https://issues.apache.org/jira/browse/MAPREDUCE-6565 -->
+  <property>
+    <name>hadoop.security.token.service.use_ip</name>
+    <value>true</value>
+  </property>
+
+<% end -%>
 <% if @hadoop_security_authentication == "kerberos" %>
   <property>
     <name>hadoop.security.authorization</name>

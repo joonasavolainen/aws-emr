@@ -32,3 +32,7 @@ export MASTER=<%= @spark_master_url %>
 export SPARK_HOME=/usr/lib/spark
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 export CLASSPATH="<%= $classpath %>"
+
+<% if @use_kerberos -%>
+export SPARK_SUBMIT_OPTIONS="$SPARK_SUBMIT_OPTIONS --conf spark.yarn.principal=zeppelin/<%= @fqdn %>@<%= @kerberos_realm %> --conf spark.yarn.keytab=/etc/zeppelin.keytab"
+<% end -%>

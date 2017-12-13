@@ -51,6 +51,15 @@ class hadoop_hive {
     }
   }
 
+  class hive_keytab {
+    include hadoop_hive::client_package
+    require kerberos::client
+    kerberos::host_keytab { "hive":
+      spnego => true,
+      require => Package["hive"],
+    }
+  }
+
   class common_config ($hbase_master = "",
                        $hbase_zookeeper_quorum = "",
                        $kerberos_realm = "",
@@ -82,11 +91,7 @@ class hadoop_hive {
                        $use_kinesis = false) {
     include hadoop_hive::client_package
     if ($kerberos_realm and $kerberos_realm != "") {
-      require kerberos::client
-      kerberos::host_keytab { "hive":
-        spnego => true,
-        require => Package["hive"],
-      }
+      include hadoop_hive::hive_keytab
     }
 
     $sticky_dirs = delete_undef_values([$java_tmp_dir, $user_log_dir])

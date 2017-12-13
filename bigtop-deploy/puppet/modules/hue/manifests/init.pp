@@ -65,7 +65,7 @@ class hue {
     if ($kerberos_realm and $kerberos_realm != "") {
       require kerberos::client
       kerberos::host_keytab { "hue":
-        spnego => false,
+        spnego => true,
         require => Package["hue-server"],
       }
     }

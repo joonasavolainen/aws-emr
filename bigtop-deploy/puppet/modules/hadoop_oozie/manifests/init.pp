@@ -89,6 +89,16 @@ class hadoop_oozie (
 
     Exec['init hdfs'] -> Exec['Oozie sharelib init']
 
+    if ($kerberos_realm and $kerberos_realm != '') {
+      Exec['Oozie kinit'] -> Exec['Oozie sharelib init']
+
+      exec { 'Oozie kinit':
+        command => "/usr/bin/kinit -kt /etc/oozie.keytab oozie/$fqdn",
+        user    => 'oozie',
+        require => Kerberos::Host_keytab['oozie'],
+      }
+    }
+
     $hdfs_rm = 'hdfs dfs -rm'
     $hdfs_put = 'hdfs dfs -put -f'
     $py4j_zip_path = "/usr/lib/spark/python/lib/py4j-*-src.zip"

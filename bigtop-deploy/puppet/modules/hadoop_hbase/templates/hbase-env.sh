@@ -44,9 +44,7 @@ export HBASE_HEAPSIZE=<%= @heap_size %>
 export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:CMSInitiatingOccupancyFraction=70 -Dsun.net.inetaddr.ttl=60 -Dnetworkaddress.cache.ttl=60"
 
 <% if @kerberos_realm != "" -%>
-# Secure Zookeeper settings
-export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Djava.security.auth.login.config=/etc/hbase/conf/jaas.conf"
-export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Djava.security.auth.login.config=/etc/hbase/conf/jaas.conf"
+export HBASE_OPTS="$HBASE_OPTS -Djava.security.auth.login.config=/etc/hbase/conf/jaas.conf"
 <% end -%>
 
 # Uncomment one of the below three options to enable java garbage collection logging for the server-side processes.

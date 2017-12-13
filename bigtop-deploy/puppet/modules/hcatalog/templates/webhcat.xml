@@ -225,4 +225,21 @@
     <description>The maximum age of a templeton job</description>
   </property>
 
+  <% if @kerberos_realm != '' -%>
+    <property>
+      <name>templeton.kerberos.secret</name>
+      <value><%= @templeton_kerberos_secret %></value>
+    </property>
+
+    <property>
+      <name>templeton.kerberos.keytab</name>
+      <value>/etc/hive.keytab</value>
+    </property>
+
+    <property>
+      <name>templeton.kerberos.principal</name>
+      <value>HTTP/<%= @fqdn %>@<%= @kerberos_realm %></value>
+    </property>
+  <% end -%>
+     
 </configuration>

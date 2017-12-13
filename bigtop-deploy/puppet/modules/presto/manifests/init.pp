@@ -82,9 +82,30 @@ class presto {
     if ($presto_hive_overrides['hive.external-table-writable'] != undef) {
       notice("hive.external-table-writable is being replaced by hive.non-managed-table-writes-enabled")
       $hive_external_table_writable = $presto_hive_overrides['hive.external-table-writable']
-      $presto_final_hive_overrides = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
+      $presto_hive_overrides_stage1 = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
     } else {
-      $presto_final_hive_overrides = $presto_hive_overrides
+      $presto_hive_overrides_stage1 = $presto_hive_overrides
+    }
+
+    # EMR-Dp-1360
+    # Disable hive table statistics if glue enabled. Remove when statistics is supported in glue connector
+    if ($presto_hive_overrides['hive.metastore.glue.datacatalog.enabled'] == 'true') {
+      $presto_final_hive_overrides = $presto_hive_overrides_stage1 + {'hive.table-statistics-enabled' => 'false'}
+    } else {
+      $presto_final_hive_overrides = $presto_hive_overrides_stage1
+    }
+
+    # Symlink Presto Glue connector & Glue SDK jars
+    include aws_hm_client::library
+    file { '/usr/lib/presto/plugin/hive-hadoop2/aws-glue-datacatalog-presto-client.jar':
+      ensure  => link,
+      target  => '/usr/share/aws/hmclient/lib/aws-glue-datacatalog-presto-client.jar',
+      require => [Package['aws-hm-client'], Package['presto']]
+    }
+    exec { 'symlink aws-java-sdk-glue':
+      path => '/bin',
+      command => 'ln -sf /usr/share/aws/aws-java-sdk/aws-java-sdk-glue-*.jar /usr/lib/presto/plugin/hive-hadoop2/aws-java-sdk-glue.jar',
+      require => Package['presto']
     }
 
     file { '/etc/presto/conf/jvm.config':

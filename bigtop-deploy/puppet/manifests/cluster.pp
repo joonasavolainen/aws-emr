@@ -130,6 +130,9 @@ $roles_map = {
   zeppelin => {
     master => ["zeppelin-server"],
   },
+  zeppelin-kerberos => {
+    worker => ["zeppelin-user"],
+  },
   zookeeper => {
     worker => ["zookeeper-server"],
     client => ["zookeeper-client"],
@@ -253,7 +256,9 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "kafka",
     "kerberos",
     "livy",
+    "nvidia",
     "mahout",
+    "mxnet",
     "phoenix",
     "presto",
     "s3_dist_cp",
@@ -263,6 +268,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "sqoop",
     "sqoop2",
     "qfs",
+    "tensorflow",
     "tez",
     "ycsb",
     "zeppelin",
@@ -287,14 +293,21 @@ class node_with_components inherits hadoop_cluster_node {
   }
 
   $given_components = $components_array[0] ? {
-    "all"   => delete(keys($roles_map), ["hdfs-non-ha", "hdfs-ha"]),
+    "all"   => delete(keys($roles_map), ["hdfs-non-ha", "hdfs-ha", "zeppelin-kerberos"]),
     default => $components_array,
   }
   $ha_dependent_components = $ha_enabled ? {
     true    => ["hdfs-ha"],
     default => ["hdfs-non-ha"],
   }
-  $components = concat($given_components, $ha_dependent_components)
+  $zeppelin_kerberos_components = (("kerberos" in $given_components) and ("zeppelin" in $given_components)) ? {
+    true    => ["zeppelin-kerberos"],
+    default => [],
+  }
+  $components = concat(
+    $given_components,
+    $ha_dependent_components,
+    $zeppelin_kerberos_components)
 
   $master_role_types = ["master", "worker", "library"]
   $standby_role_types = ["standby", "library"]
