@@ -19,6 +19,7 @@ $classpath += ':/usr/lib/hadoop/hadoop-aws.jar'
 $classpath += ':/usr/share/aws/aws-java-sdk/*'
 $classpath += ':/usr/share/aws/emr/emrfs/conf:/usr/share/aws/emr/emrfs/lib/*:/usr/share/aws/emr/emrfs/auxlib/*' if @use_emrfs
 $classpath += ':/usr/share/aws/hmclient/lib/aws-glue-datacatalog-spark-client.jar' if @use_aws_hm_client
+$classpath += ':/usr/share/aws/sagemaker-spark-sdk/lib/sagemaker-spark-sdk.jar' if @use_aws_sagemaker_spark_sdk
 -%>
 
 export ZEPPELIN_PORT=<%= @server_port %>

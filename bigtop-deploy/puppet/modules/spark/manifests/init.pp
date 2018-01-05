@@ -201,6 +201,7 @@ class spark {
       $use_emrfs = false,
       $use_alluxio = false,
       $use_aws_hm_client = false,
+      $use_aws_sagemaker_spark_sdk = false,
       $use_yarn_shuffle_service = false,
       $event_log_dir =  'hdfs:///var/log/spark/apps',
       $history_log_dir = 'hdfs:///var/log/spark/apps',
@@ -242,6 +243,10 @@ class spark {
 
     if ($use_aws_hm_client) {
       include aws_hm_client::library
+    }
+
+    if ($use_aws_sagemaker_spark_sdk) {
+      include aws_sagemaker_spark_sdk::library
     }
 
     package { 'spark-core':

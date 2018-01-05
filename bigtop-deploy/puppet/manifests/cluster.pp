@@ -156,6 +156,9 @@ $roles_map = {
   aws-hm-client => {
     library => ["aws-hm-client"],
   },
+  aws-sagemaker-spark-sdk => {
+    library => ["aws-sagemaker-spark-sdk"],
+  },
   emr-goodies => {
     library => ["emr-goodies"],
   },
@@ -232,6 +235,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "alluxio",
     "apex",
     "aws_hm_client",
+    "aws_sagemaker_spark_sdk",
     "bigtop_mysql",
     "bigtop_webserver",
     "crunch",

@@ -35,6 +35,7 @@ class zeppelin {
       $use_emrfs = false,
       $use_hive = false,
       $use_aws_hm_client = false,
+      $use_aws_sagemaker_spark_sdk = false,
       $zeppelin_env_overrides = {},
       $kerberos_realm = undef,
       $use_kerberos = (hiera("hadoop::hadoop_security_authentication", undef) == 'kerberos')) {
