@@ -71,6 +71,7 @@ class hadoop_oozie (
     $use_spark = false,
     $use_sqoop = false,
     $use_pig = false,
+    $use_hive = false,
   ) inherits hadoop_oozie {
 
     include hadoop::init_hdfs
@@ -153,8 +154,25 @@ class hadoop_oozie (
         path      => '/bin:/usr/bin:/usr/lib/oozie/bin',
         user      => 'oozie',
         command   => "$hdfs_rm $oozie_sharelib_pig_dir/$jackson_xc_jar_name $oozie_sharelib_pig_dir/$jackson_jaxrs_jar_name && \
-                      $hdfs_put $hadoop_yarn_lib_dir/$jackson_xc_jar_name $hadoop_yarn_lib_dir/$jackson_jaxrs_jar_name $oozie_sharelib_pig_dir && \
-                      $hdfs_put $hive_site_path $oozie_sharelib_pig_dir",
+                      $hdfs_put $hadoop_yarn_lib_dir/$jackson_xc_jar_name $hadoop_yarn_lib_dir/$jackson_jaxrs_jar_name $oozie_sharelib_pig_dir",
+        tries     => $init_sharelib_tries,
+        try_sleep => $init_sharelib_try_sleep,
+        timeout   => $init_sharelib_timeout,
+        require   => [
+          Package['oozie'],
+          Package['hadoop-hdfs'],
+          Package['pig'],
+          Exec['Oozie sharelib init'],
+        ],
+        logoutput => true
+      }
+    }
+
+    if ($use_pig and $use_hive) {
+      exec { 'Oozie Pig sharelib init with Hive':
+        path      => '/bin:/usr/bin:/usr/lib/oozie/bin',
+        user      => 'oozie',
+        command   => "$hdfs_put $hive_site_path $oozie_sharelib_pig_dir",
         tries     => $init_sharelib_tries,
         try_sleep => $init_sharelib_try_sleep,
         timeout   => $init_sharelib_timeout,

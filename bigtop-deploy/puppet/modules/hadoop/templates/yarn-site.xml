@@ -271,6 +271,9 @@
         /usr/lib/spark/yarn/lib/datanucleus-core.jar,
         /usr/lib/spark/yarn/lib/datanucleus-rdbms.jar,
 <% end -%>
+<% if @use_hbase_conf -%>
+        /etc/hbase/conf,
+<% end -%>
         /usr/share/aws/emr/cloudwatch-sink/lib/*,
         /usr/share/aws/aws-java-sdk/*
      </value>

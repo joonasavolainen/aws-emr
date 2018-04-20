@@ -297,6 +297,7 @@ class hadoop ($hadoop_security_authentication = "simple",
       $use_mapreduce_shuffle = false,
       $use_spark_datanucleus = false,
       $use_spark_shuffle = false,
+      $use_hbase_conf = false,
   ) inherits hadoop {
 
     include hadoop::common_core

@@ -29,9 +29,19 @@ class nvidia {
       ensure => 'installed',
     }
 
+    package { "gcc48" :
+      ensure => 'installed',
+    }
+
+    exec { 'Set gcc48' :
+      command => 'alternatives --set gcc /usr/bin/gcc48',
+      path => '/usr/bin:/usr/sbin/:/usr/local/bin',
+      require => Package["gcc48"]
+    }
+
     package { "nvidia-cuda" :
       ensure  => 'installed',
-      require => Package["kernel-devel-$kernelrelease"],
+      require => [Package["kernel-devel-$kernelrelease"],Exec["Set gcc48"]],
     }
   }
 }

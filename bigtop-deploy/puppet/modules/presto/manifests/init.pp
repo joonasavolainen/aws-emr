@@ -49,6 +49,7 @@ class presto {
     $presto_mongodb_overrides        = undef,
     $presto_raptor_overrides         = undef,
     $presto_redis_overrides          = undef,
+    $presto_redshift_overrides       = undef,
     $presto_tpch_overrides           = undef
   ) {
 
@@ -233,6 +234,15 @@ class presto {
       }
     }
 
+    if ($presto_redshift_overrides != undef) {
+      bigtop_file::properties { '/etc/presto/conf/catalog/redshift.properties':
+        content   => 'connector.name=redshift',
+        require   => Package['presto'],
+        overrides => $presto_redshift_overrides,
+        tag       => 'presto-catalog-properties'
+      }
+    }
+
     if ($presto_tpch_overrides != undef) {
       bigtop_file::properties { '/etc/presto/conf/catalog/tpch.properties':
         content   => 'connector.name=tpch',
@@ -240,6 +250,26 @@ class presto {
         overrides => $presto_tpch_overrides,
         tag       => 'presto-catalog-properties'
       }
+    }
+
+    # In order for Presto to pick up emrfs-site.xml, it needs to be in a directory
+    file { '/usr/lib/presto/plugin/hive-hadoop2/emrfs':
+      ensure  => 'directory',
+      require => Package['presto']
+    }
+
+    exec { 'symlink emrfs-site.xml':
+      path => '/bin',
+      command => 'ln -sf /usr/share/aws/emr/emrfs/conf/emrfs-site.xml /usr/lib/presto/plugin/hive-hadoop2/emrfs/emrfs-site.xml',
+      require => [
+        Package['presto'],
+        File['/usr/lib/presto/plugin/hive-hadoop2/emrfs']
+      ]
+    }
+
+    emrfs::link { 'link EMRFS jars':
+      path => '/usr/lib/presto/plugin/hive-hadoop2/',
+      require => Package["presto"]
     }
   }
 

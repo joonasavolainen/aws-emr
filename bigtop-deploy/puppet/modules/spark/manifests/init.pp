@@ -199,6 +199,7 @@ class spark {
       $hive_site_overrides = {},
       $use_hive = false,
       $use_emrfs = false,
+      $use_mahout = false,
       $use_alluxio = false,
       $use_aws_hm_client = false,
       $use_aws_sagemaker_spark_sdk = false,
@@ -275,6 +276,21 @@ class spark {
       overrides => $spark_metrics_overrides,
       source => '/etc/spark/conf/metrics.properties.template',
       require => Package['spark-core'],
+    }
+
+    if ($use_mahout) {
+      $netty_jar = "/usr/lib/spark/jars/netty-all-*.jar"
+      $hadoop_lib = "/usr/lib/hadoop/lib/"
+
+      exec { 'Copy Netty jar to Hadoop lib':
+        path      => '/bin:/usr/bin',
+        user      => 'hadoop',
+        command   => "sudo cp $netty_jar $hadoop_lib",
+        require   => [
+          Package['hadoop'],
+        ],
+        logoutput => true
+      }
     }
   }
 }

@@ -154,14 +154,6 @@
   
   <!-- NameNode security config -->
   <property>
-    <name>dfs.https.address</name>
-    <value><%= namenode_hosts[0] %>:50475</value>
-  </property>
-  <property>
-    <name>dfs.https.port</name>
-    <value>50475</value>
-  </property>
-  <property>
     <name>dfs.namenode.keytab.file</name>
     <value>/etc/hdfs.keytab</value> <!-- path to the HDFS keytab -->
   </property>
