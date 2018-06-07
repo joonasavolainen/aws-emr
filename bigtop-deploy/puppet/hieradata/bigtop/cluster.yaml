@@ -273,6 +273,7 @@ zeppelin::server::hiveserver2_password: "%{hiera('bigtop::hiveserver2_password')
 zeppelin::server::kerberos_realm: "%{hiera('kerberos::site::realm')}"
 
 livy::common::kerberos_realm: "%{hiera('kerberos::site::realm')}"
+livy::common::server_port: "8998"
 
 ganglia::aggregator_host: "%{hiera('bigtop::hadoop_head_node')}"
 ganglia::gmond_port: '8649'
@@ -297,3 +298,8 @@ gpdb::common::segment_db_port_prefix: "4000"
 # Presto
 presto::common::http_port: "8080"
 presto::common::https_port: "8443"
+
+# Jupyter
+jupyter::common::master_host: "%{hiera('bigtop::hadoop_head_node')}"
+jupyter::common::livy_server_port: "%{hiera('livy::common::server_port')}"
+

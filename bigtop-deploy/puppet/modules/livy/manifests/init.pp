@@ -19,7 +19,7 @@ class livy {
   }
 
   class common(
-    $server_port          = 8998,
+    $server_port          = undef,
     $master_url           = 'yarn',
     $livy_conf_overrides  = {},
     $livy_env_overrides   = {},

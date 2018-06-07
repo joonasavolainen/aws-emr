@@ -257,6 +257,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "hadoop_zookeeper",
     "hcatalog",
     "hue",
+    "jupyter",
     "kafka",
     "kerberos",
     "livy",

@@ -27,9 +27,15 @@ class nvidia {
 
     package { "kernel-devel-$kernelrelease" :
       ensure => 'installed',
+      install_options => ["--releasever=$kernel_devel_releasever"],
     }
 
     package { "gcc48" :
+      ensure => 'installed',
+      require => Package["$kernel_compiler_package"],
+    }
+
+    package { "$kernel_compiler_package" :
       ensure => 'installed',
     }
 
@@ -41,7 +47,7 @@ class nvidia {
 
     package { "nvidia-cuda" :
       ensure  => 'installed',
-      require => [Package["kernel-devel-$kernelrelease"],Exec["Set gcc48"]],
+      require => [Package["kernel-devel-$kernelrelease"], Exec["Set gcc48"]],
     }
   }
 }
