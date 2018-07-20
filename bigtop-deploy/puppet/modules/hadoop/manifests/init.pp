@@ -418,21 +418,23 @@ class hadoop ($hadoop_security_authentication = "simple",
     bigtop_file::site { "/etc/hadoop/conf/core-site.xml":
       content => template('hadoop/core-site.xml'),
       overrides => $core_site_overrides,
-      require => [Package["hadoop"], File[$hadoop_shared_dirs]],
+      require => [Package['hadoop'], File[$hadoop_shared_dirs],
+                  Bigtop_file::Site['/etc/hadoop/conf/ssl-server.xml'],
+                  Bigtop_file::Site['/etc/hadoop/conf/ssl-client.xml']],
     }
 
 
     bigtop_file::site { '/etc/hadoop/conf/ssl-server.xml':
       content   => template('hadoop/ssl-server.xml'),
       overrides => $hadoop_ssl_server_overrides,
-      require   => [Package['hadoop'], Bigtop_file::Site['/etc/hadoop/conf/core-site.xml']],
+      require   => Package['hadoop'],
     }
 
 
     bigtop_file::site { '/etc/hadoop/conf/ssl-client.xml':
       content   => template('hadoop/ssl-client.xml'),
       overrides => $hadoop_ssl_client_overrides,
-      require   => [Package['hadoop'], Bigtop_file::Site['/etc/hadoop/conf/core-site.xml']],
+      require   => Package['hadoop'],
     }
 
   }

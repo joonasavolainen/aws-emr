@@ -56,7 +56,7 @@ class sqoop {
       require => Package['sqoop'],
     }
 
-    redshift_connector::link {'/usr/lib/sqoop/lib/RedshiftJDBC.jdbc':
+    redshift_connector::link {'/usr/lib/sqoop/lib/RedshiftJDBC.jar':
       require => Package['sqoop'],
     }
   }

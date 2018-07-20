@@ -366,4 +366,9 @@
             in the property name.
         </description>
     </property>
+
+    <property>
+        <name>oozie.http.hostname</name>
+        <value><%= @fqdn %></value>
+    </property>
 </configuration>
