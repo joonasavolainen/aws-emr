@@ -35,11 +35,14 @@ class presto {
     $include_coordinator_in_schedule = false,
     $node_id                         = generate_node_id(),
     $presto_config_overrides         = {},
+    $presto_password_auth_overrides  = {},
     $presto_hive_overrides           = {},
     $presto_log_overrides            = {},
     $presto_env_overrides            = {},
     $presto_node_overrides           = {},
     $presto_mysql_overrides          = undef,
+    $presto_ldap_user                = undef,
+    $presto_ldap_password            = undef,
     $presto_postgresql_overrides     = undef,
     $presto_blackhole_overrides      = undef,
     $presto_cassandra_overrides      = undef,
@@ -60,53 +63,56 @@ class presto {
     $query_max_mem_per_node_calc = ceiling(to_bytes($jvm_max_memory)*0.50)
     $query_max_memory_per_node = "${query_max_mem_per_node_calc}B"
 
+    # Setting max query total memory to 60% of JVM Max Memory
+    $query_max_total_mem_per_node_calc = ceiling(to_bytes($jvm_max_memory)*0.60)
+    $query_max_total_memory_per_node = "${query_max_total_mem_per_node_calc}B"
+
     package { 'presto':
       ensure => latest,
     }
 
     $discovery_uri = "http://${discovery_host}:${http_port}"
 
-    $hive_site_overrides = hiera('hadoop_hive::common_config::hive_site_overrides')
-    if ($hive_site_overrides['hive.metastore.uris'] != undef) {
-      $hive_metastore_uri = $hive_site_overrides['hive.metastore.uris']
-    } elsif hiera('hadoop_hive::common_config::metastore_server_host') {
-      $hive_metastore_host = hiera('hadoop_hive::common_config::metastore_server_host')
-      $hive_metastore_port = hiera('hadoop_hive::common_config::metastore_server_port')
-      $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
-    } else {
-      $hive_metastore_host = hiera('bigtop::hadoop_head_node')
-      $hive_metastore_port = '9083'
-      $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
-    }
+
 
     # EMR-Dp-1869 
     if ($presto_hive_overrides['hive.external-table-writable'] != undef) {
       notice("hive.external-table-writable is being replaced by hive.non-managed-table-writes-enabled")
       $hive_external_table_writable = $presto_hive_overrides['hive.external-table-writable']
-      $presto_hive_overrides_stage1 = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
+      $presto_hive_overrides_1 = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
     } else {
-      $presto_hive_overrides_stage1 = $presto_hive_overrides
+      $presto_hive_overrides_1 = $presto_hive_overrides
     }
 
-    # EMR-Dp-1360
-    # Disable hive table statistics if glue enabled. Remove when statistics is supported in glue connector
-    if ($presto_hive_overrides['hive.metastore.glue.datacatalog.enabled'] == 'true') {
-      $presto_final_hive_overrides = $presto_hive_overrides_stage1 + {'hive.table-statistics-enabled' => 'false'}
+    if ($presto_hive_overrides_1['hive.metastore.glue.datacatalog.enabled'] != undef) {
+      if ($presto_hive_overrides_1['hive.metastore.glue.datacatalog.enabled'] == 'true') {
+        $presto_hive_overrides_2 = delete($presto_hive_overrides_1, 'hive.metastore.glue.datacatalog.enabled') + {'hive.metastore' => 'glue'}
+      } else {
+        $presto_hive_overrides_2 = delete($presto_hive_overrides_1, 'hive.metastore.glue.datacatalog.enabled')
+      }
     } else {
-      $presto_final_hive_overrides = $presto_hive_overrides_stage1
+      $presto_hive_overrides_2 = $presto_hive_overrides_1
     }
 
-    # Symlink Presto Glue connector & Glue SDK jars
-    include aws_hm_client::library
-    file { '/usr/lib/presto/plugin/hive-hadoop2/aws-glue-datacatalog-presto-client.jar':
-      ensure  => link,
-      target  => '/usr/share/aws/hmclient/lib/aws-glue-datacatalog-presto-client.jar',
-      require => [Package['aws-hm-client'], Package['presto']]
-    }
-    exec { 'symlink aws-java-sdk-glue':
-      path => '/bin',
-      command => 'ln -sf /usr/share/aws/aws-java-sdk/aws-java-sdk-glue-*.jar /usr/lib/presto/plugin/hive-hadoop2/aws-java-sdk-glue.jar',
-      require => Package['presto']
+    #EMR-DP-4135
+    if ($presto_hive_overrides_2['hive.metastore'] == 'glue') {
+      notice("hive.metastore.uri is not added to hive.properties as glue is enabled")
+      $presto_final_hive_overrides = $presto_hive_overrides_2
+    } else {
+      $hive_site_overrides = hiera('hadoop_hive::common_config::hive_site_overrides')
+      if ($hive_site_overrides['hive.metastore.uris'] != undef) {
+        $hive_metastore_uri = $hive_site_overrides['hive.metastore.uris']
+      } elsif hiera('hadoop_hive::common_config::metastore_server_host') {
+        $hive_metastore_host = hiera('hadoop_hive::common_config::metastore_server_host')
+        $hive_metastore_port = hiera('hadoop_hive::common_config::metastore_server_port')
+        $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
+      } else {
+        $hive_metastore_host = hiera('bigtop::hadoop_head_node')
+        $hive_metastore_port = '9083'
+        $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
+      }
+      notice("hive.metastore.uri is added to hive.properties as glue is not set")
+      $presto_final_hive_overrides = $presto_hive_overrides_2 + {'hive.metastore.uri' => $hive_metastore_uri}
     }
 
     file { '/etc/presto/conf/jvm.config':
@@ -118,6 +124,11 @@ class presto {
       content   => template('presto/presto-env.sh'),
       require   => Package['presto'],
       overrides => $presto_env_overrides
+    }
+
+    bigtop_file::properties { '/usr/lib/presto/etc/password-authenticator.properties':
+      require   => Package['presto'],
+      overrides => $presto_password_auth_overrides
     }
 
     bigtop_file::properties { '/etc/presto/conf/config.properties':

@@ -15,7 +15,7 @@ class mxnet {
   class deploy ($roles) {
     if ('mxnet' in $roles) {
       if ($ec2_instance_type =~ /^p2/ or $ec2_instance_type =~ /^p3/) {
-        include mxnet::gpu_cu91_library
+        include mxnet::gpu_cu92_library
       } else {
         include mxnet::cpu_library
       }
@@ -64,9 +64,9 @@ class mxnet {
     }
   }
 
-  class gpu_cu91_library {
+  class gpu_cu92_library {
     include mxnet::common
-    package { "python27-mxnet_cu91":
+    package { "python27-mxnet_cu92":
       ensure   => latest,
       require  => [
         Package["python27-graphviz"],
@@ -74,7 +74,7 @@ class mxnet {
         Package["openblas"]
       ]
     }
-    package { "python34-mxnet_cu91":
+    package { "python34-mxnet_cu92":
       ensure   => latest,
       require  => [
         Package["python34-graphviz"],

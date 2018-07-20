@@ -26,7 +26,9 @@ class jupyter {
     $jupyter_sparkmagic_overrides = undef,
     $notebook_config_overrides = undef,
     $master_host = undef,
-    $livy_server_port = undef
+    $livy_server_port = undef,
+    $use_s3_persistence = false,
+    $s3_persistence_bucket = undef
   ) {
 
     package { "docker":
@@ -96,7 +98,7 @@ class jupyter {
 
     # For all execs running docker, we run as sudo. 
     
-    $command = "docker run --restart unless-stopped -it -d  \
+    $command = "docker run --restart on-failure:5 -it -d  \
 -p 9443:9443 -e GRANT_SUDO=yes --user root \
 -v /etc/jupyter:/etc/jupyter -v /var/lib/jupyter/home:/home \
 -v /var/log/jupyter:/var/log/jupyter --privileged --name jupyterhub \
@@ -109,6 +111,19 @@ emr/jupyter-notebook:5.4.0"
       require => [ Bigtop_file::Python["/etc/jupyter/jupyter_notebook_config.py"], 
         Bigtop_file::Python["/etc/jupyter/conf/jupyterhub_config.py"], 
         Bigtop_file::Json["/etc/jupyter/conf/config.json"] ],
+    }
+
+    # We want to fail to provision if we cannot confirm Hub is running.
+    
+    $curl_command = "curl -k -s https://${hostname}:9443/hub/api"
+    exec {"Check JupyterHub":
+      path => "/usr/bin",
+      command => $curl_command,
+      tries => 5,
+      try_sleep => 15,
+      returns => 0,
+      logoutput => true,
+      require => Exec["Start JupyterHub"]
     }
   }
 
