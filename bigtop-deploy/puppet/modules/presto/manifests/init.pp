@@ -73,48 +73,6 @@ class presto {
 
     $discovery_uri = "http://${discovery_host}:${http_port}"
 
-
-
-    # EMR-Dp-1869 
-    if ($presto_hive_overrides['hive.external-table-writable'] != undef) {
-      notice("hive.external-table-writable is being replaced by hive.non-managed-table-writes-enabled")
-      $hive_external_table_writable = $presto_hive_overrides['hive.external-table-writable']
-      $presto_hive_overrides_1 = delete($presto_hive_overrides,'hive.external-table-writable') + {'hive.non-managed-table-writes-enabled' => $hive_external_table_writable}
-    } else {
-      $presto_hive_overrides_1 = $presto_hive_overrides
-    }
-
-    if ($presto_hive_overrides_1['hive.metastore.glue.datacatalog.enabled'] != undef) {
-      if ($presto_hive_overrides_1['hive.metastore.glue.datacatalog.enabled'] == 'true') {
-        $presto_hive_overrides_2 = delete($presto_hive_overrides_1, 'hive.metastore.glue.datacatalog.enabled') + {'hive.metastore' => 'glue'}
-      } else {
-        $presto_hive_overrides_2 = delete($presto_hive_overrides_1, 'hive.metastore.glue.datacatalog.enabled')
-      }
-    } else {
-      $presto_hive_overrides_2 = $presto_hive_overrides_1
-    }
-
-    #EMR-DP-4135
-    if ($presto_hive_overrides_2['hive.metastore'] == 'glue') {
-      notice("hive.metastore.uri is not added to hive.properties as glue is enabled")
-      $presto_final_hive_overrides = $presto_hive_overrides_2
-    } else {
-      $hive_site_overrides = hiera('hadoop_hive::common_config::hive_site_overrides')
-      if ($hive_site_overrides['hive.metastore.uris'] != undef) {
-        $hive_metastore_uri = $hive_site_overrides['hive.metastore.uris']
-      } elsif hiera('hadoop_hive::common_config::metastore_server_host') {
-        $hive_metastore_host = hiera('hadoop_hive::common_config::metastore_server_host')
-        $hive_metastore_port = hiera('hadoop_hive::common_config::metastore_server_port')
-        $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
-      } else {
-        $hive_metastore_host = hiera('bigtop::hadoop_head_node')
-        $hive_metastore_port = '9083'
-        $hive_metastore_uri = "thrift://${hive_metastore_host}:${hive_metastore_port}"
-      }
-      notice("hive.metastore.uri is added to hive.properties as glue is not set")
-      $presto_final_hive_overrides = $presto_hive_overrides_2 + {'hive.metastore.uri' => $hive_metastore_uri}
-    }
-
     file { '/etc/presto/conf/jvm.config':
       content => template('presto/jvm.config'),
       require => Package['presto']
@@ -152,7 +110,7 @@ class presto {
     bigtop_file::properties { '/etc/presto/conf/catalog/hive.properties':
       content   => template('presto/hive.properties'),
       require   => Package['presto'],
-      overrides => $presto_final_hive_overrides
+      overrides => $presto_hive_overrides
     }
 
     if ($presto_mysql_overrides != undef) {

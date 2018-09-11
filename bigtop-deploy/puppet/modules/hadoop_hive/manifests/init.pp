@@ -88,6 +88,7 @@ class hadoop_hive {
                        $use_dynamodb = false,
                        $use_aws_hm_client = false,
                        $use_emr_goodies = false,
+                       $use_emr_s3_select = false,
                        $use_kinesis = false) {
     include hadoop_hive::client_package
     if ($kerberos_realm and $kerberos_realm != "") {
@@ -130,6 +131,17 @@ class hadoop_hive {
         target  => '/usr/share/java/Hive-JSON-Serde/hive-openx-serde.jar',
         tag     => 'hive-aux-jar',
         require => [Package['aws-hm-client'], Package['hive']]
+      }
+    }
+
+    if ($use_emr_s3_select) {
+      include emr_s3_select::library
+
+      file { '/usr/lib/hive/auxlib/emr-s3-select-hive-connector.jar':
+        ensure  => link,
+        target  => '/usr/share/aws/emr/s3select/lib/emr-s3-select-hive-connector.jar',
+        tag     => 'hive-aux-jar',
+        require => [Package['emr-s3-select'], Package['hive']]
       }
     }
 

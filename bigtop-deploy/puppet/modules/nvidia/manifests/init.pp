@@ -19,6 +19,10 @@ class nvidia {
     if ($instance_family in ['p2','p3'])
     {
       include nvidia::common
+
+      if ($instance_family == 'p3') {
+        include nvidia::nccl
+      }
     }
   }
 
@@ -48,6 +52,12 @@ class nvidia {
     package { "nvidia-cuda" :
       ensure  => 'installed',
       require => [Package["kernel-devel-$kernelrelease"], Exec["Set gcc48"]],
+    }
+  }
+
+  class nccl {
+    package { "nvidia-nccl" :
+      ensure  => 'installed'
     }
   }
 }

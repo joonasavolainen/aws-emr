@@ -14,8 +14,16 @@ class tensorflow {
 
   class deploy ($roles) {
     if ('tensorflow' in $roles) {
-      if ($ec2_instance_type =~ /^p2/ or $ec2_instance_type =~ /^p3/) {
+
+      # remove custom ec2_metadata_instance_type.rb facter on completion of https://sim.amazon.com/issues/EMR-Dp-4317
+      $instance_family = split($ec2_metadata_instance_type,'[.]')[0]
+
+      if ($instance_family == 'p2') {
         include tensorflow::gpu_library
+      } elsif ($instance_family == 'p3') {
+        include tensorflow::gpu_nccl_library
+      } elsif ($instance_family in ['m5','c5']) {
+        include tensorflow::cpu_mkl_library
       } else {
         include tensorflow::cpu_library
       }
@@ -23,6 +31,13 @@ class tensorflow {
   }
 
   class common {
+
+    # EMR-Dp-4205, TF expects SSL CA bundle to be at /etc/ssl/certs/ca-certificates.crt
+    file { '/etc/ssl/certs/ca-certificates.crt':
+      ensure => 'link',
+      target => '/etc/ssl/certs/ca-bundle.crt'
+    }
+
     if ! defined(Package["python27-numpy"]) {
       package { "python27-numpy":
         ensure   => latest
@@ -44,9 +59,6 @@ class tensorflow {
     package { "python27-enum34":
       ensure   => latest
     }
-    package { "python34-enum34":
-      ensure   => latest
-    }
 
     package { "python27-protobuf":
       ensure   => latest,
@@ -65,9 +77,6 @@ class tensorflow {
     package { "python27-backports.weakref":
       ensure   => latest
     }
-    package { "python34-backports.weakref":
-      ensure   => latest
-    }
 
     package { "python27-werkzeug":
       ensure   => latest
@@ -83,11 +92,11 @@ class tensorflow {
       ensure   => latest
     }
 
-   package { "python27-tensorflow-tensorboard":
+   package { "python27-tensorboard":
       ensure   => latest
    }
    
-   package { "python34-tensorflow-tensorboard":
+   package { "python34-tensorboard":
       ensure   => latest
    }
 
@@ -130,47 +139,112 @@ class tensorflow {
    package { "python27-pbr":
       ensure   => latest
    }
+
+    package { "python27-absl-py":
+      ensure   => latest
+    }
+
+    package { "python34-absl-py":
+      ensure   => latest
+    }
+
+    package { "python27-astor":
+      ensure   => latest
+    }
+
+    package { "python34-astor":
+      ensure   => latest
+    }
+
+    package { "python27-gast":
+      ensure   => latest
+    }
+
+    package { "python34-gast":
+      ensure   => latest
+    }
+
+    package { "python27-grpcio":
+      ensure   => latest
+    }
+
+    package { "python34-grpcio":
+      ensure   => latest
+    }
+
+    package { "python27-termcolor":
+      ensure   => latest
+    }
+
+    package { "python34-termcolor":
+      ensure   => latest
+    }
   }
+
+  $python27_dependencies = [
+    Package["python27-numpy"],
+    Package["python27-six"],
+    Package["python27-enum34"],
+    Package["python27-protobuf"],
+    Package["python27-backports.weakref"],
+    Package["python27-werkzeug"],
+    Package["python27-futures"],
+    Package["python27-tensorboard"],
+    Package["python27-html5lib"],
+    Package["python27-bleach"],
+    Package["python27-funcsigs"],
+    Package["python27-mock"],
+    Package["python27-pbr"],
+    Package["python27-absl-py"],
+    Package["python27-astor"],
+    Package["python27-gast"],
+    Package["python27-grpcio"],
+    Package["python27-termcolor"]
+  ]
+
+  $python34_dependencies = [
+    Package["python34-numpy"],
+    Package["python34-six"],
+    Package["python34-protobuf"],
+    Package["python34-werkzeug"],
+    Package["python34-futures"],
+    Package["python34-tensorboard"],
+    Package["python34-html5lib"],
+    Package["python34-bleach"],
+    Package["python34-markdown"],
+    Package["python34-funcsigs"],
+    Package["python34-absl-py"],
+    Package["python34-astor"],
+    Package["python34-gast"],
+    Package["python34-grpcio"],
+    Package["python34-termcolor"]
+  ]
 
   class cpu_library {
     include tensorflow::common
     
     package { "python27-tensorflow":
       ensure   => latest,
-      require  => [
-        Package["python27-numpy"],
-        Package["python27-six"],
-        Package["python27-enum34"],
-        Package["python27-protobuf"],
-        Package["python27-backports.weakref"],
-        Package["python27-werkzeug"],
-        Package["python27-futures"],
-        Package["python27-tensorflow-tensorboard"],
-        Package["python27-html5lib"],
-        Package["python27-bleach"],
-        Package["python34-markdown"],
-        Package["python27-funcsigs"],
-        Package["python27-mock"],
-        Package["python27-pbr"]
-      ]
+      require  => $python27_dependencies
     }
 
     package { "python34-tensorflow":
       ensure   => latest,
-      require  => [
-        Package["python34-numpy"],
-        Package["python34-six"],
-        Package["python34-enum34"],
-        Package["python34-protobuf"],
-        Package["python34-backports.weakref"],
-        Package["python34-werkzeug"],
-        Package["python34-futures"],
-        Package["python34-tensorflow-tensorboard"],
-        Package["python34-html5lib"],
-        Package["python34-bleach"],
-        Package["python34-markdown"],
-        Package["python34-funcsigs"]
-      ]
+      require  => $python34_dependencies
+    }
+  }
+
+  class cpu_mkl_library {
+    include tensorflow::common
+
+    package { "python27-tensorflow-mkl":
+      ensure   => latest,
+      require  => $python27_dependencies
+    }
+
+    package { "python34-tensorflow-mkl":
+      ensure   => latest,
+      require  => $python34_dependencies
     }
   }
 
@@ -179,40 +253,26 @@ class tensorflow {
     
     package { "python27-tensorflow-gpu":
       ensure   => latest,
-      require  => [
-        Package["python27-numpy"],
-        Package["python27-six"],
-        Package["python27-enum34"],
-        Package["python27-protobuf"],
-        Package["python27-backports.weakref"],
-        Package["python27-werkzeug"],
-        Package["python27-futures"],
-        Package["python27-tensorflow-tensorboard"],
-        Package["python27-html5lib"],
-        Package["python27-bleach"],
-        Package["python34-markdown"],
-        Package["python27-funcsigs"],
-        Package["python27-mock"], 
-        Package["python27-pbr"]
-      ]
+      require  => $python27_dependencies
     }
 
     package { "python34-tensorflow-gpu":
       ensure   => latest,
-      require  => [
-        Package["python34-numpy"],
-        Package["python34-six"],
-        Package["python34-enum34"],
-        Package["python34-protobuf"],
-        Package["python34-backports.weakref"],
-        Package["python34-werkzeug"],
-        Package["python34-futures"],
-        Package["python34-tensorflow-tensorboard"],
-        Package["python34-html5lib"],
-        Package["python34-bleach"],
-        Package["python34-markdown"],
-        Package["python34-funcsigs"]
-      ]
+      require  => $python34_dependencies
+    }
+  }
+
+  class gpu_nccl_library {
+    include tensorflow::common
+
+    package { "python27-tensorflow-gpu-nccl":
+      ensure   => latest,
+      require  => $python27_dependencies
+    }
+
+    package { "python34-tensorflow-gpu-nccl":
+      ensure   => latest,
+      require  => $python34_dependencies
     }
   }
 }

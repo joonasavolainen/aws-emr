@@ -199,6 +199,7 @@ class spark {
       $hive_site_overrides = {},
       $use_hive = false,
       $use_emrfs = false,
+      $use_emr_s3_select = false,
       $use_mahout = false,
       $use_alluxio = false,
       $use_aws_hm_client = false,
@@ -244,6 +245,10 @@ class spark {
 
     if ($use_aws_hm_client) {
       include aws_hm_client::library
+    }
+
+    if($use_emr_s3_select) {
+      include emr_s3_select::library
     }
 
     if ($use_aws_sagemaker_spark_sdk) {

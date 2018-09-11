@@ -118,7 +118,18 @@
     <name>hive.metastore.sasl.enabled</name>
     <value>true</value>
 </property>
-<% end %> 
+<% end %>
+
+<% if @use_emr_s3_select -%>
+<property>
+  <name>hive.textfile.input.format</name>
+  <value>com.amazonaws.emr.s3select.hive.S3SelectableTextInputFormat</value>
+</property>
+<property>
+  <name>s3select.filter</name>
+  <value>false</value>
+</property>
+<% end -%>
 
 <property>
     <name>hive.server2.in.place.progress</name>

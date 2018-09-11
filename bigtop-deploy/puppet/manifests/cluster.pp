@@ -153,6 +153,9 @@ $roles_map = {
   emr-ddb => {
     library => ["emr-ddb"],
   },
+  emr-s3-select => {
+    library => ["emr-s3-select"],
+  },
   aws-hm-client => {
     library => ["aws-hm-client"],
   },
@@ -242,6 +245,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "emr_ddb",
     "emr_goodies",
     "emr_kinesis",
+    "emr_s3_select",
     "emrfs",
     "flink",
     "ganglia",

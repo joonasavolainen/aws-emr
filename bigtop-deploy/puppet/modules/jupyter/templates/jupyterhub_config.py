@@ -5,7 +5,7 @@ notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR')
 network_name='jupyterhub-network'
 
 c.Spawner.debug = True
-c.Spawner.environment = {'SPARKMAGIC_CONF_DIR':'/etc/jupyter/conf'}
+c.Spawner.environment = {'SPARKMAGIC_CONF_DIR':'/etc/jupyter/conf', 'JUPYTER_ENABLE_LAB': 'yes'}
 
 c.JupyterHub.hub_ip = '0.0.0.0'
 c.JupyterHub.admin_access = True

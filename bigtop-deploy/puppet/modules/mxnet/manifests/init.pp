@@ -14,7 +14,9 @@ class mxnet {
 
   class deploy ($roles) {
     if ('mxnet' in $roles) {
-      if ($ec2_instance_type =~ /^p2/ or $ec2_instance_type =~ /^p3/) {
+
+      # remove usage of custom ec2_metadata_instance_type.rb facter on completion of https://sim.amazon.com/issues/EMR-Dp-4317
+      if ($ec2_metadata_instance_type =~ /^p2/ or $ec2_metadata_instance_type =~ /^p3/) {
         include mxnet::gpu_cu92_library
       } else {
         include mxnet::cpu_library
@@ -44,23 +46,27 @@ class mxnet {
     }
   }
 
+  $python27_dependencies = [
+    Package["python27-graphviz"],
+    Package["python27-numpy"],
+    Package["openblas"]
+  ]
+
+  $python34_dependencies = [
+    Package["python34-graphviz"],
+    Package["python34-numpy"],
+    Package["openblas"]
+  ]
+
   class cpu_library {
     include mxnet::common
     package { "python27-mxnet":
       ensure   => latest,
-      require  => [
-        Package["python27-graphviz"],
-        Package["python27-numpy"],
-        Package["openblas"]
-      ]
+      require  => $python27_dependencies
     }
     package { "python34-mxnet":
       ensure   => latest,
-      require  => [
-        Package["python34-graphviz"],
-        Package["python34-numpy"],
-        Package["openblas"]
-      ]
+      require  => $python34_dependencies
     }
   }
 
@@ -68,19 +74,11 @@ class mxnet {
     include mxnet::common
     package { "python27-mxnet_cu92":
       ensure   => latest,
-      require  => [
-        Package["python27-graphviz"],
-        Package["python27-numpy"],
-        Package["openblas"]
-      ]
+      require  => $python27_dependencies
     }
     package { "python34-mxnet_cu92":
       ensure   => latest,
-      require  => [
-        Package["python34-graphviz"],
-        Package["python34-numpy"],
-        Package["openblas"]
-      ]
+      require  => $python34_dependencies
     }
   }
 }

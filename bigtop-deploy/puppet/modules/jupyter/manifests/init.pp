@@ -28,7 +28,8 @@ class jupyter {
     $master_host = undef,
     $livy_server_port = undef,
     $use_s3_persistence = false,
-    $s3_persistence_bucket = undef
+    $s3_persistence_bucket = undef,
+    $notebook_version = "5.6.0"
   ) {
 
     package { "docker":
@@ -102,7 +103,7 @@ class jupyter {
 -p 9443:9443 -e GRANT_SUDO=yes --user root \
 -v /etc/jupyter:/etc/jupyter -v /var/lib/jupyter/home:/home \
 -v /var/log/jupyter:/var/log/jupyter --privileged --name jupyterhub \
-emr/jupyter-notebook:5.4.0"
+emr/jupyter-notebook:${jupyter::common::notebook_version}"
 
     exec { "Start JupyterHub":
       path => "/usr/bin",
@@ -134,7 +135,7 @@ emr/jupyter-notebook:5.4.0"
 -p 9443:9443 -e GRANT_SUDO=yes --user root \
 -v /etc/jupyter:/etc/jupyter -v /var/lib/jupyter/home:/home \
 -v /var/log/jupyter:/var/log/jupyter --privileged --name jupyterhub \
-emr/jupyter-notebook:5.4.0 jupyter-notebook"
+emr/jupyter-notebook:${jupyter::common::notebook_version} jupyter-notebook"
 
     exec { "Start Jupyter Notebook":
       path => "/usr/bin",
