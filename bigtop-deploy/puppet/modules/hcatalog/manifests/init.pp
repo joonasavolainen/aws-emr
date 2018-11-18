@@ -94,11 +94,12 @@ class hcatalog {
       $webhcat_log4j2_overrides = {},
       $webhcat_site_overrides = {},
       $server_port = '50111',
+      $generate_secret_key_options = { charset => 'alphanumeric' },
     ) {
 
       if ($kerberos_realm != '') {
         $templeton_kerberos_secret = $generate_secrets ? {
-          true => trocla('templeton_kerberos_secret', 'plain'),
+          true => trocla('templeton_kerberos_secret', 'plain', $generate_secret_key_options),
           default => $kerberos_secret
         }
         if (($templeton_kerberos_secret == undef) or ($templeton_kerberos_secret == '')) {

@@ -16,11 +16,11 @@ class nvidia {
   {
     $instance_family = split($ec2_instance_type,'[.]')[0]
 
-    if ($instance_family in ['p2','p3','g3'])
+    if ($instance_family in ['p2','p3','g3','g3s'])
     {
       include nvidia::common
 
-      if ($instance_family in ['p3','g3']) {
+      if ($instance_family in ['p3','g3','g3s']) {
         include nvidia::nccl
       }
     }

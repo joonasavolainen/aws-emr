@@ -1173,9 +1173,16 @@ class hadoop ($hadoop_security_authentication = "simple",
       subscribe => [Package["hadoop-yarn-resourcemanager"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
         Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
         Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-      require => [ Package["hadoop-yarn-resourcemanager"] ],
+      require => [ Package["hadoop-yarn-resourcemanager"], Exec['init hdfs'] ],
     }
     Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-resourcemanager"]
+
+    exec { 'install-core-nodelabel' :
+      command => 'yarn rmadmin -addToClusterNodeLabels "CORE(exclusive=false)"',
+      user => 'yarn',
+      require => [ Service["hadoop-yarn-resourcemanager"], Service["hadoop-hdfs-namenode"] ],
+      path => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
+    }
 
     exec { "yarn rmadmin -refreshQueues":
       subscribe => [Bigtop_file::Site["/etc/hadoop/conf/capacity-scheduler.xml"]],

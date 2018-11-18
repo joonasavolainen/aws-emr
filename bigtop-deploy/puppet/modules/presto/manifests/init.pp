@@ -49,11 +49,13 @@ class presto {
     $presto_jmx_overrides            = undef,
     $presto_localfile_overrides      = undef,
     $presto_kafka_overrides          = undef,
+    $presto_memory_overrides         = undef,
     $presto_mongodb_overrides        = undef,
     $presto_raptor_overrides         = undef,
     $presto_redis_overrides          = undef,
     $presto_redshift_overrides       = undef,
-    $presto_tpch_overrides           = undef
+    $presto_tpch_overrides           = undef,
+    $presto_tpcds_overrides          = undef
   ) {
 
     # Log final memory calculations
@@ -187,7 +189,7 @@ class presto {
 
     if ($presto_raptor_overrides != undef) {
       bigtop_file::properties { '/etc/presto/conf/catalog/raptor.properties':
-        content   => 'connector.name=raptor',
+        content   => template('presto/raptor.properties'),
         require   => Package['presto'],
         overrides => $presto_raptor_overrides,
         tag       => 'presto-catalog-properties'
@@ -217,6 +219,24 @@ class presto {
         content   => 'connector.name=tpch',
         require   => Package['presto'],
         overrides => $presto_tpch_overrides,
+        tag       => 'presto-catalog-properties'
+      }
+    }
+
+    if ($presto_tpcds_overrides != undef) {
+      bigtop_file::properties { '/etc/presto/conf/catalog/tpcds.properties':
+        content   => 'connector.name=tpcds',
+        require   => Package['presto'],
+        overrides => $presto_tpcds_overrides,
+        tag       => 'presto-catalog-properties'
+      }
+    }
+
+    if ($presto_memory_overrides != undef) {
+      bigtop_file::properties { '/etc/presto/conf/catalog/memory.properties':
+        content   => 'connector.name=memory',
+        require   => Package['presto'],
+        overrides => $presto_memory_overrides,
         tag       => 'presto-catalog-properties'
       }
     }

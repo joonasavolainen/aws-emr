@@ -20,7 +20,7 @@ class tensorflow {
 
       if ($instance_family == 'p2') {
         include tensorflow::gpu_library
-      } elsif ($instance_family in ['p3','g3']) {
+      } elsif ($instance_family in ['p3','g3','g3s']) {
         include tensorflow::gpu_nccl_library
       } elsif ($instance_family in ['m5','c5']) {
         include tensorflow::cpu_mkl_library
@@ -179,6 +179,22 @@ class tensorflow {
     package { "python34-termcolor":
       ensure   => latest
     }
+
+    package { "python27-keras_applications":
+      ensure   => latest
+    }
+
+    package { "python34-keras_applications":
+      ensure   => latest
+    }
+
+    package { "python27-keras_preprocessing":
+      ensure   => latest
+    }
+
+    package { "python34-keras_preprocessing":
+      ensure   => latest
+    }
   }
 
   $python27_dependencies = [
@@ -199,7 +215,9 @@ class tensorflow {
     Package["python27-astor"],
     Package["python27-gast"],
     Package["python27-grpcio"],
-    Package["python27-termcolor"]
+    Package["python27-termcolor"],
+    Package["python27-keras_applications"],
+    Package["python27-keras_preprocessing"]
   ]
 
   $python34_dependencies = [
@@ -217,7 +235,9 @@ class tensorflow {
     Package["python34-astor"],
     Package["python34-gast"],
     Package["python34-grpcio"],
-    Package["python34-termcolor"]
+    Package["python34-termcolor"],
+    Package["python27-keras_applications"],
+    Package["python27-keras_preprocessing"]
   ]
 
   class cpu_library {

@@ -199,6 +199,7 @@ class spark {
       $hive_site_overrides = {},
       $use_hive = false,
       $use_emrfs = false,
+      $use_emr_goodies = false,
       $use_emr_s3_select = false,
       $use_mahout = false,
       $use_alluxio = false,
@@ -217,6 +218,16 @@ class spark {
     if ($use_emrfs) {
       include emrfs::library
       Bigtop_file::Site['/usr/share/aws/emr/emrfs/conf/emrfs-site.xml'] -> Bigtop_file::Env['/etc/spark/conf/spark-env.sh']
+    }
+
+    if ($use_emr_goodies) {
+      include emr_goodies::library
+
+      file { '/usr/lib/spark/jars/emr-spark-goodies.jar':
+        ensure  => link,
+        target  => '/usr/share/aws/emr/goodies/lib/emr-spark-goodies.jar',
+        require => [Package['emr-goodies'], Package['spark-core']]
+      }
     }
 
     if ($use_hive) or ($use_aws_hm_client) {

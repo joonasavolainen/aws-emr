@@ -29,7 +29,7 @@ class jupyter {
     $livy_server_port = undef,
     $use_s3_persistence = false,
     $s3_persistence_bucket = undef,
-    $notebook_version = "5.6.0"
+    $notebook_version = "5.7.0"
   ) {
 
     package { "docker":
