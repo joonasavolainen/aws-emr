@@ -31,7 +31,6 @@ class presto {
     $http_port                       = hiera('presto::common::http_port'),
     $hive_s3_staging_dir             = '/tmp/',
     $coordinator                     = false,
-    $discovery_server_enabled        = false,
     $include_coordinator_in_schedule = false,
     $node_id                         = generate_node_id(),
     $presto_config_overrides         = {},
@@ -40,6 +39,7 @@ class presto {
     $presto_log_overrides            = {},
     $presto_env_overrides            = {},
     $presto_node_overrides           = {},
+    $discovery_server_enabled        = undef,
     $presto_mysql_overrides          = undef,
     $presto_ldap_user                = undef,
     $presto_ldap_password            = undef,
@@ -283,8 +283,7 @@ class presto {
 
   class worker {
     class { 'common':
-      coordinator              => false,
-      discovery_server_enabled => false
+      coordinator              => false
     }
     include presto::server
   }

@@ -90,6 +90,18 @@ node default {
 
   $roles_enabled = hiera("bigtop::roles_enabled", false)
 
+  # we use two separate variables instead of one list (like bigtop::standby_head_nodes) because 
+  # variables are passed to later nodes in BigTop as strings in this version of Puppet, which
+  # made using these variables more difficult for no added benefit
+  $ha_enabled = (hiera("bigtop::standby_head_node_0","") != "" and hiera("bigtop::standby_head_node_1","") != "")
+  # adding this here so hiera.yaml can interpolate. hiera can only interpolate top-level scope
+  # variables from manifest scripts, so this must be defined in the default node to be
+  # accessible to hiera.yaml
+  $hadoop_hiera_ha_path = $ha_enabled ? {
+    true => "ha",
+    false => "noha",
+  }
+
   if ($roles_enabled) {
     include node_with_roles
   } else {

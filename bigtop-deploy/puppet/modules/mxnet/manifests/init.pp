@@ -16,7 +16,9 @@ class mxnet {
     if ('mxnet' in $roles) {
 
       # remove usage of custom ec2_metadata_instance_type.rb facter on completion of https://sim.amazon.com/issues/EMR-Dp-4317
-      if ($ec2_metadata_instance_type =~ /^p2/ or $ec2_metadata_instance_type =~ /^p3/) {
+      if ($ec2_metadata_instance_type =~ /^p2/ or 
+          $ec2_metadata_instance_type =~ /^p3/ or 
+          $ec2_metadata_instance_type =~ /^g3/) {
         include mxnet::gpu_cu92_library
       } else {
         include mxnet::cpu_library

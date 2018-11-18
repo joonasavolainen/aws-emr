@@ -1,7 +1,7 @@
 {
   "interpreterSettings": {
-    "2AJXGMUUJ": {
-      "id": "2AJXGMUUJ",
+    "md": {
+      "id": "md",
       "name": "md",
       "group": "md",
       "properties": {},
@@ -19,8 +19,8 @@
         "isExistingProcess": false
       }
     },
-    "2AM1YV5CU": {
-      "id": "2AM1YV5CU",
+    "angular": {
+      "id": "angular",
       "name": "angular",
       "group": "angular",
       "properties": {},
@@ -38,8 +38,8 @@
         "isExistingProcess": false
       }
     },
-    "2BRWU4WXC": {
-      "id": "2BRWU4WXC",
+    "python": {
+      "id": "python",
       "name": "python",
       "group": "python",
       "properties": {
@@ -61,8 +61,8 @@
         "isExistingProcess": false
       }
     },
-    "2AKK3QQXU": {
-      "id": "2AKK3QQXU",
+    "sh": {
+      "id": "sh",
       "name": "sh",
       "group": "sh",
       "properties": {
@@ -83,8 +83,8 @@
         "isExistingProcess": false
       }
     },
-    "2ANGGHHMQ": {
-      "id": "2ANGGHHMQ",
+    "spark": {
+      "id": "spark",
       "name": "spark",
       "group": "spark",
       "properties": {
@@ -126,11 +126,11 @@
   },
   "interpreterBindings": {
     "2A94M5J1Z": [
-      "2ANGGHHMQ",
-      "2AJXGMUUJ",
-      "2AM1YV5CU",
-      "2AKK3QQXU",
-      "2BRWU4WXC"
+      "spark",
+      "md",
+      "angular",
+      "sh",
+      "python"
     ]
   }
 }

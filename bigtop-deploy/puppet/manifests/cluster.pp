@@ -208,20 +208,9 @@ class hadoop_cluster_node (
   }
 
   $hadoop_head_node = hiera("bigtop::hadoop_head_node")
-  $standby_head_node = hiera("bigtop::standby_head_node", "")
-  $hadoop_gateway_node = hiera("bigtop::hadoop_gateway_node", $hadoop_head_node)
-
-  $ha_enabled = $standby_head_node ? {
-    ""      => false,
-    default => true,
-  }
-
-  # look into alternate hiera datasources configured using this path in
-  # hiera.yaml
-  $hadoop_hiera_ha_path = $ha_enabled ? {
-    false => "noha",
-    true  => "ha",
-  }
+  $standby_head_node_0 = hiera("bigtop::standby_head_node_0", "")
+  $standby_head_node_1 = hiera("bigtop::standby_head_node_1", "")
+  $hadoop_gateway_node = hiera("bigtop::hadoop_gateway_node", $hadoop_head_node) 
 
   emr_scripts::scripts{ 'emr_scripts scripts': }
 }
@@ -265,6 +254,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "kafka",
     "kerberos",
     "livy",
+    "nginx",
     "nvidia",
     "mahout",
     "mxnet",
@@ -331,7 +321,7 @@ class node_with_components inherits hadoop_cluster_node {
     } else {
       $role_types = $gateway_role_types
     }
-  } elsif ($::fqdn == $standby_head_node) {
+  } elsif ($::fqdn == $standby_head_node_0 or $::fqdn == $standby_head_node_1) {
     $role_types = $standby_role_types
   } else {
     $role_types = $worker_role_types

@@ -42,15 +42,11 @@ fi
 
 export JAVA="$JAVA_HOME/bin/java"
 
-echo "Starting alluxio w/ java = $JAVA "
-
 #export ALLUXIO_UNDERFS_ADDRESS=hdfs://localhost:9000
 export ALLUXIO_WORKER_MEMORY_SIZE=1GB
 export ALLUXIO_UNDERFS_HDFS_IMPL=org.apache.hadoop.hdfs.DistributedFileSystem
-
 export ALLUXIO_MASTER_HOSTNAME=<%= @master_host %>
 export ALLUXIO_UNDERFS_ADDRESS=<%= @underfs_address %>
-echo "ALLUXIO master => $ALLUXIO_MASTER_HOSTNAME"
 
 CONF_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

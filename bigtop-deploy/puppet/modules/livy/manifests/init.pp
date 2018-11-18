@@ -69,6 +69,7 @@ class livy {
       hasrestart => true,
       hasstatus  => true,
       subscribe => [
+        Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
         Bigtop_file::Env['/etc/livy/conf/livy-env.sh'],
         Bigtop_file::Conf['/etc/livy/conf/livy.conf']
       ]

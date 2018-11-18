@@ -272,8 +272,8 @@ class spark {
     }
 
     bigtop_file::properties { '/etc/spark/conf/log4j.properties':
+      content => template('spark/log4j.properties'),
       overrides => $spark_log4j_overrides,
-      source => '/etc/spark/conf/log4j.properties.template',
       require => Package['spark-core'],
     }
 

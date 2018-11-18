@@ -122,9 +122,10 @@
 
 <% if @use_emr_s3_select -%>
 <property>
-  <name>hive.textfile.input.format</name>
+  <name>hive.optimize.ppd.input.formats</name>
   <value>com.amazonaws.emr.s3select.hive.S3SelectableTextInputFormat</value>
 </property>
+
 <property>
   <name>s3select.filter</name>
   <value>false</value>

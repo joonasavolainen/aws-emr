@@ -20,7 +20,7 @@ class tensorflow {
 
       if ($instance_family == 'p2') {
         include tensorflow::gpu_library
-      } elsif ($instance_family == 'p3') {
+      } elsif ($instance_family in ['p3','g3']) {
         include tensorflow::gpu_nccl_library
       } elsif ($instance_family in ['m5','c5']) {
         include tensorflow::cpu_mkl_library

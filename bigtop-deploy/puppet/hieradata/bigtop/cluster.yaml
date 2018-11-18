@@ -303,3 +303,6 @@ presto::common::https_port: "8443"
 jupyter::common::master_host: "%{hiera('bigtop::hadoop_head_node')}"
 jupyter::common::livy_server_port: "%{hiera('livy::common::server_port')}"
 
+# Nginx
+nginx::common::proxy_url: "http://%{hiera('hadoop::common_yarn::hadoop_ps_host')}:%{hiera('hadoop::common_yarn::hadoop_ps_port')}"
+
