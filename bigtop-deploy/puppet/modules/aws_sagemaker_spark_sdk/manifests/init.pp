@@ -15,7 +15,7 @@ class aws_sagemaker_spark_sdk {
       ensure => present,
     }
 
-    package { 'python34-numpy':
+    package { 'python36-numpy':
       ensure => present,
     }
 
@@ -24,9 +24,9 @@ class aws_sagemaker_spark_sdk {
       require => Package['python27-numpy']
     }
 
-    package { 'python34-sagemaker_pyspark':
+    package { 'python36-sagemaker_pyspark':
       ensure => present,
-      require => Package['python34-numpy']
+      require => Package['python36-numpy']
     }
   }
 }

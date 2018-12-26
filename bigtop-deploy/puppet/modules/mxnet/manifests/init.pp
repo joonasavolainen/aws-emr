@@ -35,11 +35,11 @@ class mxnet {
         ensure   => latest
       }
     }
-    package { "python34-graphviz":
+    package { "python36-graphviz":
       ensure   => latest
     }
-    if ! defined(Package["python34-numpy"]) {
-      package { "python34-numpy":
+    if ! defined(Package["python36-numpy"]) {
+      package { "python36-numpy":
         ensure   => latest
       }
     }
@@ -54,9 +54,9 @@ class mxnet {
     Package["openblas"]
   ]
 
-  $python34_dependencies = [
-    Package["python34-graphviz"],
-    Package["python34-numpy"],
+  $python36_dependencies = [
+    Package["python36-graphviz"],
+    Package["python36-numpy"],
     Package["openblas"]
   ]
 
@@ -66,9 +66,9 @@ class mxnet {
       ensure   => latest,
       require  => $python27_dependencies
     }
-    package { "python34-mxnet":
+    package { "python36-mxnet":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 
@@ -78,9 +78,9 @@ class mxnet {
       ensure   => latest,
       require  => $python27_dependencies
     }
-    package { "python34-mxnet_cu92":
+    package { "python36-mxnet_cu92":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 }

@@ -64,7 +64,7 @@
   <property>
     <name>hadoop.kms.authentication.kerberos.name.rules</name>
     <value>
-<% if @kerberos_cross_realm_trust_enabled -%>
+<% if @kerberos_cross_realm_trust_realm -%>
       RULE:[1:$1@$0](.*@<%= Regexp.quote(@kerberos_cross_realm_trust_realm) %>)s/@.*//L
       RULE:[2:$1@$0](.*@<%= Regexp.quote(@kerberos_cross_realm_trust_realm) %>)s/@.*//L
 <% end -%>

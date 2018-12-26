@@ -43,8 +43,8 @@ class tensorflow {
         ensure   => latest
       }
     }
-    if ! defined(Package["python34-numpy"]) {
-      package { "python34-numpy":
+    if ! defined(Package["python36-numpy"]) {
+      package { "python36-numpy":
         ensure   => latest
       }
     }
@@ -52,7 +52,7 @@ class tensorflow {
     package { "python27-six":
       ensure   => latest
     }
-    package { "python34-six":
+    package { "python36-six":
       ensure   => latest
     }
 
@@ -67,10 +67,10 @@ class tensorflow {
       ]
     }
 
-    package { "python34-protobuf":
+    package { "python36-protobuf":
       ensure   => latest,
       require  => [
-        Package["python34-six"]
+        Package["python36-six"]
       ]
     }
 
@@ -81,14 +81,14 @@ class tensorflow {
     package { "python27-werkzeug":
       ensure   => latest
     }
-    package { "python34-werkzeug":
+    package { "python36-werkzeug":
       ensure   => latest
     }
 
    package { "python27-futures":
       ensure   => latest
     }
-    package { "python34-futures":
+    package { "python36-futures":
       ensure   => latest
     }
 
@@ -96,7 +96,7 @@ class tensorflow {
       ensure   => latest
    }
    
-   package { "python34-tensorboard":
+   package { "python36-tensorboard":
       ensure   => latest
    }
 
@@ -104,7 +104,7 @@ class tensorflow {
       ensure   => latest
    }
    
-   package { "python34-html5lib":
+   package { "python36-html5lib":
       ensure   => latest
    }
 
@@ -112,7 +112,7 @@ class tensorflow {
       ensure   => latest
    }   
 
-   package { "python34-bleach":
+   package { "python36-bleach":
       ensure   => latest
    }
 
@@ -120,7 +120,7 @@ class tensorflow {
       ensure   => latest
     }
    
-   package { "python34-funcsigs":
+   package { "python36-funcsigs":
       ensure   => latest
    }
 
@@ -128,7 +128,7 @@ class tensorflow {
    # 2. We only need to install mock and pbr for Python 2.7. See:
    #    https://tiny.amazon.com/1j570t2w1/githtenstensf722
 
-   package { "python34-markdown":
+   package { "python36-markdown":
       ensure   => latest
    }
     
@@ -144,7 +144,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-absl-py":
+    package { "python36-absl-py":
       ensure   => latest
     }
 
@@ -152,7 +152,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-astor":
+    package { "python36-astor":
       ensure   => latest
     }
 
@@ -160,7 +160,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-gast":
+    package { "python36-gast":
       ensure   => latest
     }
 
@@ -168,7 +168,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-grpcio":
+    package { "python36-grpcio":
       ensure   => latest
     }
 
@@ -176,7 +176,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-termcolor":
+    package { "python36-termcolor":
       ensure   => latest
     }
 
@@ -184,7 +184,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-keras_applications":
+    package { "python36-keras_applications":
       ensure   => latest
     }
 
@@ -192,7 +192,7 @@ class tensorflow {
       ensure   => latest
     }
 
-    package { "python34-keras_preprocessing":
+    package { "python36-keras_preprocessing":
       ensure   => latest
     }
   }
@@ -200,7 +200,7 @@ class tensorflow {
   $python27_dependencies = [
     Package["python27-numpy"],
     Package["python27-six"],
-    Package["python27-enum34"],
+    Package["python27-enum36"],
     Package["python27-protobuf"],
     Package["python27-backports.weakref"],
     Package["python27-werkzeug"],
@@ -220,22 +220,22 @@ class tensorflow {
     Package["python27-keras_preprocessing"]
   ]
 
-  $python34_dependencies = [
-    Package["python34-numpy"],
-    Package["python34-six"],
-    Package["python34-protobuf"],
-    Package["python34-werkzeug"],
-    Package["python34-futures"],
-    Package["python34-tensorboard"],
-    Package["python34-html5lib"],
-    Package["python34-bleach"],
-    Package["python34-markdown"],
-    Package["python34-funcsigs"],
-    Package["python34-absl-py"],
-    Package["python34-astor"],
-    Package["python34-gast"],
-    Package["python34-grpcio"],
-    Package["python34-termcolor"],
+  $python36_dependencies = [
+    Package["python36-numpy"],
+    Package["python36-six"],
+    Package["python36-protobuf"],
+    Package["python36-werkzeug"],
+    Package["python36-futures"],
+    Package["python36-tensorboard"],
+    Package["python36-html5lib"],
+    Package["python36-bleach"],
+    Package["python36-markdown"],
+    Package["python36-funcsigs"],
+    Package["python36-absl-py"],
+    Package["python36-astor"],
+    Package["python36-gast"],
+    Package["python36-grpcio"],
+    Package["python36-termcolor"],
     Package["python27-keras_applications"],
     Package["python27-keras_preprocessing"]
   ]
@@ -248,9 +248,9 @@ class tensorflow {
       require  => $python27_dependencies
     }
 
-    package { "python34-tensorflow":
+    package { "python36-tensorflow":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 
@@ -262,9 +262,9 @@ class tensorflow {
       require  => $python27_dependencies
     }
 
-    package { "python34-tensorflow-mkl":
+    package { "python36-tensorflow-mkl":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 
@@ -276,9 +276,9 @@ class tensorflow {
       require  => $python27_dependencies
     }
 
-    package { "python34-tensorflow-gpu":
+    package { "python36-tensorflow-gpu":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 
@@ -290,9 +290,9 @@ class tensorflow {
       require  => $python27_dependencies
     }
 
-    package { "python34-tensorflow-gpu-nccl":
+    package { "python36-tensorflow-gpu-nccl":
       ensure   => latest,
-      require  => $python34_dependencies
+      require  => $python36_dependencies
     }
   }
 }

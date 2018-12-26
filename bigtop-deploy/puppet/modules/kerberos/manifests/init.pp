@@ -34,6 +34,9 @@ class kerberos {
       $kdc_server = 'localhost',
       $kdc_port = '88',
       $admin_port = 749,
+      $external_master_kdc_server = undef,
+      $external_slave_kdc_servers = undef, # it is a list of kdc servers with ports, eg: ['kdc.abc.com:88','kdc.xyz.com:88']
+      $external_admin_server = undef,
       $admin_password = 'secure',
       $principal_creation_timeout = 300, # 5 minutes
       $log_dir = "/var/log/kerberos",
@@ -45,6 +48,11 @@ class kerberos {
       $cross_realm_trust_principal_password = undef,
       $ticket_lifetime = "24h",
       $keytab_export_dir = "/var/lib/bigtop_keytabs") {
+
+
+    if ($external_master_kdc_server){
+      if ($external_admin_server == undef) { fail("For external KDC, admin server can not be null")}
+    }
 
     if ($cross_realm_trust_enabled) {
 

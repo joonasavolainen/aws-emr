@@ -63,7 +63,7 @@
     <value><%= @hadoop_security_authentication %></value>
   </property>
 
-<% if @kerberos_cross_realm_trust_enabled -%>
+<% if @kerberos_cross_realm_trust_realm -%>
   <property>
     <name>hadoop.security.auth_to_local</name>
     <value>
