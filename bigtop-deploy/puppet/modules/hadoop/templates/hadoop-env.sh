@@ -120,6 +120,14 @@ export HADOOP_CLASSPATH="$HADOOP_CLASSPATH:/usr/lib/alluxio/alluxio-core-client-
 
 <% end -%>
 
+<% if @hadoop_security_authentication == "kerberos" -%>
+DISABLE_USE_SUBJECT_CREDS_ONLY="-Djavax.security.auth.useSubjectCredsOnly=false"
+export HADOOP_NAMENODE_OPTS="${DISABLE_USE_SUBJECT_CREDS_ONLY} ${HADOOP_NAMENODE_OPTS}"
+export HADOOP_DATANODE_OPTS="${DISABLE_USE_SUBJECT_CREDS_ONLY} ${HADOOP_DATANODE_OPTS}"
+export HADOOP_JOURNALNODE_OPTS="${DISABLE_USE_SUBJECT_CREDS_ONLY} ${HADOOP_JOURNALNODE_OPTS}"
+export HADOOP_ZKFC_OPTS="${DISABLE_USE_SUBJECT_CREDS_ONLY} ${HADOOP_ZKFC_OPTS}"
+<% end -%>
+
 # Add CloudWatch sink jar to classpath
 export HADOOP_CLASSPATH="$HADOOP_CLASSPATH:/usr/share/aws/emr/cloudwatch-sink/lib/*"
 

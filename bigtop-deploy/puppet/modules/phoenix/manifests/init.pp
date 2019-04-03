@@ -35,21 +35,25 @@ class phoenix {
     }
 
     bigtop_file::site { '/etc/phoenix/conf/hbase-site.xml':
+      source => '/etc/phoenix/conf.dist/hbase-site.xml.default',
       overrides => $phoenix_hbase_site_overrides,
       require => Package['phoenix'],
     }
 
     bigtop_file::properties { '/etc/phoenix/conf/hadoop-metrics2-hbase.properties':
+      source => '/etc/phoenix/conf.dist/hadoop-metrics2-hbase.properties.default',
       overrides => $phoenix_hbase_metrics_overrides,
       require => Package['phoenix'],
     }
 
     bigtop_file::properties { '/etc/phoenix/conf/log4j.properties':
+      source => '/etc/phoenix/conf.dist/log4j.properties.default',
       overrides => $phoenix_log4j_overrides,
       require => Package['phoenix'],
     }
 
     bigtop_file::properties { '/etc/phoenix/conf/hadoop-metrics2-phoenix.properties':
+      source => '/etc/phoenix/conf.dist/hadoop-metrics2-phoenix.properties.default',
       overrides => $phoenix_metrics_overrides,
       require => Package['phoenix'],
     }

@@ -146,12 +146,14 @@
   </property>
 
 <%   end -%>
-<%   if @hadoop_security_authentication == "kerberos" -%>
+<% end -%>
+
+<% if @hadoop_security_authentication == "kerberos" -%>
   <property>
     <name>dfs.block.access.token.enable</name>
     <value>true</value>
   </property>
-  
+
   <!-- NameNode security config -->
   <property>
     <name>dfs.namenode.keytab.file</name>
@@ -174,7 +176,7 @@
     <value>HTTP/_HOST@<%= @kerberos_realm %></value>
   </property>
 
-  
+<%    if @ha == "disabled" -%>
   <!-- Secondary NameNode security config -->
   <property>
     <name>dfs.secondary.http.address</name>
@@ -200,11 +202,12 @@
     <name>dfs.secondary.namenode.kerberos.https.principal</name>
     <value>host/_HOST@<%= @kerberos_realm %></value>
   </property>
-  
+<%    end -%>
+
   <!-- DataNode security config -->
   <property>
     <name>dfs.datanode.data.dir.perm</name>
-    <value>700</value> 
+    <value>700</value>
   </property>
   <property>
     <name>dfs.datanode.address</name>
@@ -227,8 +230,8 @@
     <value>host/_HOST@<%= @kerberos_realm %></value>
   </property>
 
-<%   end -%>
 <% end -%>
+
   <property>
     <name>dfs.datanode.data.dir</name>
     <value><%= @hdfs_data_dirs.map { |dir| "file://#{dir}" }.join(",") %></value>
@@ -353,6 +356,21 @@
     <name>dfs.journalnode.https-address</name>
     <value><%= @journalnode_host %>:<%= @journalnode_https_port %></value>
   </property>
+
+<%    if @hadoop_security_authentication == "kerberos" -%>
+  <property>
+    <name>dfs.journalnode.keytab.file</name>
+    <value>/etc/hdfs.keytab</value> <!-- path to the HDFS keytab -->
+  </property>
+  <property>
+    <name>dfs.journalnode.kerberos.principal</name>
+    <value>hdfs/_HOST@<%= @kerberos_realm %></value>
+  </property>
+  <property>
+    <name>dfs.journalnode.kerberos.internal.spnego.principal</name>
+    <value>HTTP/_HOST@<%= @kerberos_realm %></value>
+  </property>
+<%    end -%>
 
 <%   end -%>
 <% end -%>

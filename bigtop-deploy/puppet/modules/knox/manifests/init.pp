@@ -27,6 +27,9 @@ class knox {
     $knoxcli_log4j_overrides = {},
     $knoxsso_overrides       = {},
     $enablePac4jProvider     = false,
+    $idpMetadataS3Path       = undef,
+    $idpMetadataFolderPath   = undef,
+    $idpMetadataFileName     = undef,
     $sandbox_overrides       = {},
     $enableSSOCookieProvider = false,
     $enableTokenService      = false,
@@ -53,6 +56,16 @@ class knox {
     bigtop_file::properties { '/etc/knox/conf/knoxcli-log4j.properties':
       overrides => $knoxcli_log4j_overrides,
       require => Package['knox'],
+    }
+
+    exec { 'copy s3 identity provider metadata file to local':
+      command => "/bin/mkdir -m 700 $idpMetadataFolderPath ; /usr/bin/aws s3 cp $idpMetadataS3Path $idpMetadataFolderPath$idpMetadataFileName",
+      user    => 'knox',
+      require => [
+        Package['knox'],
+      ],
+      logoutput => true,
+      returns => 0,
     }
 
     exec { 'create knox master':
@@ -99,6 +112,7 @@ class knox {
       hasstatus  => true,
       subscribe => [
         Bigtop_file::Site['/etc/knox/conf/gateway-site.xml'],
+        Exec['copy s3 identity provider metadata file to local'],
         Exec['create knox master'],
       ]
     }

@@ -544,9 +544,6 @@ class hadoop ($hadoop_security_authentication = "simple",
         require => File[$ssh_user_keydir],
       }
     }
-    if ($hadoop_security_authentication == "kerberos" and $ha != "disabled") {
-      fail("High-availability secure clusters are not currently supported")
-    }
 
     if ($hadoop_security_authentication == "kerberos") {
       require kerberos::client
@@ -1088,6 +1085,7 @@ class hadoop ($hadoop_security_authentication = "simple",
         }
 
         Service["hadoop-hdfs-zkfc"] -> Service["hadoop-hdfs-namenode"]
+        Kerberos::Host_keytab <| title == "hdfs" |> -> Service["hadoop-hdfs-zkfc"]
         Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-zkfc"]
       }
 
@@ -1216,6 +1214,7 @@ class hadoop ($hadoop_security_authentication = "simple",
         Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
       require => [ Package["hadoop-hdfs-journalnode"], File[$journalnode_cluster_journal_dir] ],
     }
+    Kerberos::Host_keytab <| title == "hdfs" |> -> Service["hadoop-hdfs-journalnode"]
     Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-journalnode"]
     Service["hadoop-hdfs-journalnode"] -> Service<| title == "hadoop-hdfs-namenode" |>
     # The below statement is not implied if the above <||> does not resolve (in master slot3 case),
@@ -1324,17 +1323,19 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => Package["jdk"],
     }
 
-    service { "hadoop-mapreduce-historyserver":
-      ensure => running,
-      hasstatus => true,
-      subscribe => [Package["hadoop-mapreduce-historyserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
-        Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
-        Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/mapred-env.sh"],
-        Bigtop_file::Site["/etc/hadoop/conf/mapred-site.xml"],Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-      require => [Package["hadoop-mapreduce-historyserver"]],
+    if ($hadoop::common_mapred_app::mapreduce_jobhistory_host == $::fqdn) {
+      service { "hadoop-mapreduce-historyserver":
+        ensure => running,
+        hasstatus => true,
+        subscribe => [Package["hadoop-mapreduce-historyserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+          Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
+          Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/mapred-env.sh"],
+          Bigtop_file::Site["/etc/hadoop/conf/mapred-site.xml"],Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
+        require => [Package["hadoop-mapreduce-historyserver"]],
+      }
+      Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-mapreduce-historyserver"]
+      Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-mapreduce-historyserver"]
     }
-    Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-mapreduce-historyserver"]
-    Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-mapreduce-historyserver"]
   }
 
 

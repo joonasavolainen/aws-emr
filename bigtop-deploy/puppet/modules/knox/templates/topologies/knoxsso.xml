@@ -32,7 +32,7 @@
             </param>
             <param>
                 <name>saml.identityProviderMetadataPath</name>
-                <value>/tmp/idp-metadata.xml</value>
+                <value><%= @idpMetadataFolderPath %><%= @idpMetadataFileName %></value>
             </param>
             <param>
                 <name>saml.serviceProviderEntityId</name>
@@ -40,7 +40,7 @@
             </param>
             <param>
                 <name>pac4j.id_attribute</name>
-                <value>https://glue.amazon.com/SAML/Attributes/Username</value>
+                <value>https://glue.amazon.com/SAML/Attributes/UserName</value>
             </param>
             <param>
                 <name>pac4j.cookie.domain.suffix</name>
