@@ -208,7 +208,17 @@ class spark {
       $use_yarn_shuffle_service = false,
       $event_log_dir =  'hdfs:///var/log/spark/apps',
       $history_log_dir = 'hdfs:///var/log/spark/apps',
+      $user_log_dir = undef,
   ) {
+    $sticky_dirs = delete_undef_values([$user_log_dir])
+
+    file { $sticky_dirs :
+      ensure => "directory",
+      owner  => "root",
+      group  => "root",
+      mode   => "1777",
+      require => Package['spark-core']
+    }
 
     if ($hadoop_lzo_codec) {
       include hadoop::lzo_codec

@@ -122,6 +122,32 @@
         "perNoteProcess": false,
         "isExistingProcess": false
       }
+    },
+    "livy": {
+      "id": "livy",
+      "name": "livy",
+      "group": "livy",
+      "properties": {
+        "zeppelin.livy.url": "http://<%= @fqdn %>:<%= @livy_server_port %>"
+      },
+      "interpreterGroup": [
+        {
+          "name": "spark",
+          "class": "org.apache.zeppelin.livy.LivySparkInterpreter"
+        },
+        {
+          "name": "pyspark",
+          "class": "org.apache.zeppelin.livy.LivyPySparkInterpreter"
+        }
+      ],
+      "dependencies": [],
+      "option": {
+        "remote": true,
+        "port": -1,
+        "perNoteSession": false,
+        "perNoteProcess": false,
+        "isExistingProcess": false
+      }
     }
   },
   "interpreterBindings": {
@@ -130,7 +156,8 @@
       "md",
       "angular",
       "sh",
-      "python"
+      "python",
+      "livy"
     ]
   }
 }

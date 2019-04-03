@@ -38,6 +38,7 @@ class zeppelin {
       $use_aws_sagemaker_spark_sdk = false,
       $zeppelin_env_overrides = {},
       $kerberos_realm = undef,
+      $livy_server_port = hiera('livy::common::server_port'),
       $use_kerberos = (hiera("hadoop::hadoop_security_authentication", undef) == 'kerberos')) {
   
     package { 'zeppelin':
