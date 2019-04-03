@@ -234,9 +234,9 @@ bigtop_mysql::server::grants:
     user: "%{hiera('hadoop_hive::common_config::metastore_database_user')}@%"
 
 hadoop_oozie::oozie_http_hostname: "%{hiera('bigtop::hadoop_head_node')}"
-hadoop_oozie::server::fs_uri: "%{hiera('bigtop::hadoop_namenode_uri')}"
-hadoop_oozie::server::resource_manager_uri: "%{hiera('hadoop::hadoop_namenode_host')}:%{hiera('hadoop::common_yarn::hadoop_rm_port')}"
-hadoop_oozie::server::hiveserver2_url: "jdbc:hive2://%{hiera('hadoop_hive::common_config::hiveserver2_host')}:%{hiera('hadoop_hive::common_config::hiveserver2_port')}/default"
+hadoop_oozie::fs_uri: "%{hiera('bigtop::hadoop_namenode_uri')}"
+hadoop_oozie::client::resource_manager_uri: "%{hiera('hadoop::hadoop_namenode_host')}:%{hiera('hadoop::common_yarn::hadoop_rm_port')}"
+hadoop_oozie::client::hiveserver2_url: "jdbc:hive2://%{hiera('hadoop_hive::common_config::hiveserver2_host')}:%{hiera('hadoop_hive::common_config::hiveserver2_port')}/default"
 
 # tez
 hadoop::common::tez_conf_dir: "/etc/tez/conf"
@@ -275,7 +275,8 @@ zeppelin::server::kerberos_realm: "%{hiera('kerberos::site::realm')}"
 livy::common::kerberos_realm: "%{hiera('kerberos::site::realm')}"
 livy::common::server_port: "8998"
 
-ganglia::aggregator_host: "%{hiera('bigtop::hadoop_head_node')}"
+ganglia::aggregator_hosts: ["%{hiera('bigtop::hadoop_head_node')}"]
+ganglia::sink_servers: "%{hiera('bigtop::hadoop_head_node')}:%{hiera('ganglia::gmond_port')}"
 ganglia::gmond_port: '8649'
 ganglia::gmetad_xml_port: '8651'
 ganglia::gmetad_interactive_port: '8652'
@@ -306,3 +307,8 @@ jupyter::common::livy_server_port: "%{hiera('livy::common::server_port')}"
 # Nginx
 nginx::common::proxy_url: "http://%{hiera('hadoop::common_yarn::hadoop_ps_host')}:%{hiera('hadoop::common_yarn::hadoop_ps_port')}"
 
+# Knox
+knox::common::server_port: "8442"
+knox::common::knoxsso_endpoint: "gateway/knoxsso/api/v1/websso"
+knox::common::knoxsso_out_endpoint: "gateway/knoxssout/api/v1/webssout"
+knox::common::gateway_identity_pem: "/var/lib/knox/data/security/keystores/gateway-identity.pem"

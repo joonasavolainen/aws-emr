@@ -16,6 +16,7 @@
 class hadoop_oozie (
   $oozie_http_hostname = 'localhost',
   $oozie_http_port = '11000',
+  $fs_uri = "hdfs://localhost:8020"
 ) {
 
   $oozie_url = "http://$oozie_http_hostname:$oozie_http_port/oozie"
@@ -25,14 +26,18 @@ class hadoop_oozie (
       include hadoop_oozie::client
     }
 
-    if ('oozie-server' in $roles) {
+    if ('oozie-server' in $roles and hiera('bigtop::hadoop_head_node') == $::fqdn) {
       include hadoop_oozie::server
     }
   }
 
   class client (
     $oozie_client_env_overrides = {},
-    $oozie_url = inline_template("<%= scope.lookupvar('hadoop_oozie::oozie_url') %>")
+    $oozie_url = inline_template("<%= scope.lookupvar('hadoop_oozie::oozie_url') %>"),
+    $fs_uri = $hadoop_oozie::fs_uri,
+    $resource_manager_uri = "localhost:8032",
+    $hiveserver2_url = 'jdbc:hive2://localhost:10000/default',
+    $spark_master_url = 'local[*]'
   ) inherits hadoop_oozie {
 
     package { 'oozie-client':
@@ -45,6 +50,11 @@ class hadoop_oozie (
       require   => Package['oozie-client']
     }
 
+    file { '/etc/oozie/conf/install-oozie-examples-env.sh':
+      ensure    => file,
+      content   => template('hadoop_oozie/install-oozie-examples-env.sh'),
+      require   => Package['oozie-client']
+    }
   }
 
   class server (
@@ -53,7 +63,7 @@ class hadoop_oozie (
     $oozie_log4j_overrides = {},
     $oozie_env_overrides = {},
     $hadoop_lzo_codec = false,
-    $fs_uri = "hdfs://localhost:8020",
+    $fs_uri = $hadoop_oozie::fs_uri,
     $init_sharelib_tries = undef,
     $init_sharelib_try_sleep = undef,
     $init_sharelib_timeout = undef,
@@ -62,9 +72,6 @@ class hadoop_oozie (
     $oozie_http_hostname = inline_template("<%= scope.lookupvar('hadoop_oozie::oozie_http_hostname') %>"),
     $oozie_http_port = inline_template("<%= scope.lookupvar('hadoop_oozie::oozie_http_port') %>"),
     $oozie_url = inline_template("<%= scope.lookupvar('hadoop_oozie::oozie_url') %>"),
-    $resource_manager_uri = "localhost:8032",
-    $spark_master_url = 'local[*]',
-    $hiveserver2_url = 'jdbc:hive2://localhost:10000/default',
     $symlink_hive_conf = false,
     $symlink_pig_conf = false,
     $symlink_tez_conf = false,
@@ -227,6 +234,7 @@ class hadoop_oozie (
     }
 
     bigtop_file::properties { '/etc/oozie/conf/oozie-log4j.properties':
+      source => '/etc/oozie/conf.dist/oozie-log4j.properties.default',
       overrides => $oozie_log4j_overrides,
       require   => Package['oozie']
     }
@@ -234,12 +242,6 @@ class hadoop_oozie (
     bigtop_file::env { '/etc/oozie/conf/oozie-env.sh':
       content   => template('hadoop_oozie/oozie-env.sh'),
       overrides => $oozie_env_overrides,
-      require   => Package['oozie']
-    }
-
-    file { '/etc/oozie/conf/install-oozie-examples-env.sh':
-      ensure    => file,
-      content   => template('hadoop_oozie/install-oozie-examples-env.sh'),
       require   => Package['oozie']
     }
 

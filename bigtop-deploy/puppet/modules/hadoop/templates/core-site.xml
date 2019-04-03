@@ -16,7 +16,7 @@
 <!-- See the License for the specific language governing permissions and      -->
 <!-- limitations under the License.                                           -->
 
-<% namenode_hosts = Array(@hadoop_namenode_host) -%>
+<% namenode_hosts = Array([@hadoop_namenode_host] + @hadoop_standby_namenode_hosts) -%>
 <configuration>
 
   <property>

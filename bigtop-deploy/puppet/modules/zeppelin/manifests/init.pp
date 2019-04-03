@@ -37,6 +37,13 @@ class zeppelin {
       $use_aws_hm_client = false,
       $use_aws_sagemaker_spark_sdk = false,
       $zeppelin_env_overrides = {},
+      $enableShiro = false,
+      $enableKnoxAuthenticationFilter = false,
+      $shiro_ini_overrides = {},
+      $knox_server_port = hiera('knox::common::server_port'),
+      $knoxsso_endpoint = hiera('knox::common::knoxsso_endpoint'),
+      $knoxsso_out_endpoint = hiera('knox::common::knoxsso_out_endpoint'),
+      $knox_gateway_identity_pem = hiera('knox::common::gateway_identity_pem'),
       $kerberos_realm = undef,
       $livy_server_port = hiera('livy::common::server_port'),
       $use_kerberos = (hiera("hadoop::hadoop_security_authentication", undef) == 'kerberos')) {
@@ -57,7 +64,16 @@ class zeppelin {
       owner   => 'zeppelin',
       group   => 'zeppelin',
     }
-    
+
+    if ($enableShiro) {
+      bigtop_file::ini { '/etc/zeppelin/conf/shiro.ini':
+        content => template('zeppelin/shiro.ini'),
+        overrides => $shiro_ini_overrides,
+        require => Package['zeppelin'],
+      }
+      File <| title == '/etc/zeppelin/conf/shiro.ini' |> ~> Service['zeppelin']
+    }
+
     service { 'zeppelin':
       ensure     => running,
       subscribe  => [ Package['zeppelin'], Bigtop_file::Env['/etc/zeppelin/conf/zeppelin-env.sh'], File['/etc/zeppelin/conf/interpreter.json'], ],

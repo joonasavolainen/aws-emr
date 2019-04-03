@@ -87,6 +87,7 @@ class presto {
     }
 
     bigtop_file::properties { '/usr/lib/presto/etc/password-authenticator.properties':
+      source    => '/usr/lib/presto/etc/password-authenticator.properties.default',
       require   => Package['presto'],
       overrides => $presto_password_auth_overrides
     }
@@ -104,7 +105,7 @@ class presto {
     }
 
     bigtop_file::properties { '/etc/presto/conf/log.properties':
-      source    => '/etc/presto/conf/log.properties',
+      source    => '/etc/presto/conf.dist/log.properties.default',
       require   => Package['presto'],
       overrides => $presto_log_overrides
     }

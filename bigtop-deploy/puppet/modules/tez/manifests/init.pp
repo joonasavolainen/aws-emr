@@ -50,24 +50,32 @@ class tez {
       logoutput => true
     }
 
-    exec { 'Copy Tez tarball to HDFS':
-      path => '/bin:/usr/bin/',
-      command   => "$hdfs_mv tez.tar.gz $tez_tarball_path",
-      unless    => "$hdfs_ls $tez_tarball_path",
-      user      => 'hdfs',
-      tries     => 540,
-      try_sleep => 5,
-      timeout   => 2700,
-      require   => [
-        Exec['init hdfs'],
-        Package['tez'],
-        Exec['Tar Tez jars']
-      ],
-      logoutput => true
+    if (hiera("bigtop::hadoop_head_node") == $::fqdn) {
+      exec { 'Copy Tez tarball to HDFS':
+        path      => '/bin:/usr/bin/',
+        command   => "$hdfs_mv tez.tar.gz $tez_tarball_path",
+        unless    => "$hdfs_ls $tez_tarball_path",
+        user      => 'hdfs',
+        tries     => 540,
+        try_sleep => 5,
+        timeout   => 2700,
+        require   => [
+          Exec['init hdfs'],
+          Package['tez'],
+          Exec['Tar Tez jars']
+        ],
+        logoutput => true
+      }
     }
   }
 
-  class web {
+  class web (
+      $yarn_timeline_service_host = $hadoop::common_yarn::yarn_timeline_service_host,
+      $hadoop_ps_host = $hadoop::common_yarn::hadoop_ps_host,
+      $hadoop_ps_port = $hadoop::common_yarn::hadoop_ps_port,
+      $hadoop_rm_host = $hadoop::common_yarn::hadoop_rm_host,
+      $hadoop_rm_webapp_port = $hadoop::common_yarn::hadoop_rm_webapp_port
+  ) {
 
     include tomcat::deploy
 
@@ -86,8 +94,13 @@ class tez {
         Package['tez'],
         File['/var/lib/tomcat8/webapps/tez-ui']
       ],
-      tag       => "tomcat-war",
       logoutput => true
+    }
+
+    file { '/var/lib/tomcat8/webapps/tez-ui/config/configs.env':
+      content   => template('tez/configs.env'),
+      require   => [Exec['Unzip Tez-UI War to webapps']],
+      tag       => "tomcat-war"
     }
   }
 }

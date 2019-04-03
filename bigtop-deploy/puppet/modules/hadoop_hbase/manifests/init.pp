@@ -90,6 +90,7 @@ class hadoop_hbase {
     }
 
     bigtop_file::properties { "/etc/hbase/conf/log4j.properties":
+      source => '/etc/hbase/conf.dist/log4j.properties.default',
       overrides => $hbase_log4j_overrides,
       require => Package["hbase"],
     }

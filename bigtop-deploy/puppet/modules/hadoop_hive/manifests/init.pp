@@ -195,21 +195,25 @@ class hadoop_hive {
     }
 
     bigtop_file::properties { '/etc/hive/conf/hive-exec-log4j2.properties':
+      source => '/etc/hive/conf.dist/hive-exec-log4j2.properties.default',
       overrides => $hive_exec_log4j2_overrides,
       require => Package['hive'],
     }
 
     bigtop_file::properties { '/etc/hive/conf/beeline-log4j2.properties':
+      source => '/etc/hive/conf.dist/beeline-log4j2.properties.default',
       overrides => $hive_beeline_log4j2_overrides,
       require => Package['hive'],
     }
 
     bigtop_file::properties { '/etc/hive/conf/parquet-logging.properties':
+      source => '/etc/hive/conf.dist/parquet-logging.properties.default',
       overrides => $hive_parquet_logging_overrides,
       require => Package['hive'],
     }
 
     bigtop_file::properties { '/etc/hive/conf/llap-daemon-log4j2.properties':
+      source => '/etc/hive/conf.dist/llap-daemon-log4j2.properties.default',
       overrides => $hive_llap_daemon_log4j2_overrides,
       require => Package['hive'],
     }
@@ -305,7 +309,9 @@ class hadoop_hive {
       require   => [Package['hive'], Class['Hadoop_hive::Database_connector']],
       subscribe => [Bigtop_file::Site['/etc/hive/conf/hive-site.xml'], Bigtop_file::Env['/etc/hive/conf/hive-env.sh']],
       logoutput => true,
-      unless    => "/usr/lib/hive/bin/schematool -dbType $common_config::metastore_database_schema_type -info"
+      unless    => "/usr/lib/hive/bin/schematool -dbType $common_config::metastore_database_schema_type -info",
+      tries     => hiera('hadoop::ha', 'disabled') ? {"auto" => 10, default => 1},
+      try_sleep => 5
     }
   }
 

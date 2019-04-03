@@ -70,7 +70,8 @@ class phoenix {
     service { 'phoenix-queryserver':
       ensure => running,
       require => Package['phoenix-queryserver'],
-      subscribe => Bigtop_file::Properties['/etc/phoenix/conf/log4j.properties'],
+      subscribe => [ Bigtop_file::Properties['/etc/phoenix/conf/log4j.properties'],
+          Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
       hasrestart => true,
       hasstatus => true,
     }

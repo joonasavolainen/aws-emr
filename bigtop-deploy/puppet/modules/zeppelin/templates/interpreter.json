@@ -128,6 +128,10 @@
       "name": "livy",
       "group": "livy",
       "properties": {
+        <% if @kerberos_realm != "" -%>
+        "zeppelin.livy.principal": "zeppelin/<%= @fqdn %>@<%= @kerberos_realm %>",
+        "zeppelin.livy.keytab": "/etc/zeppelin.keytab",
+        <% end -%>
         "zeppelin.livy.url": "http://<%= @fqdn %>:<%= @livy_server_port %>"
       },
       "interpreterGroup": [

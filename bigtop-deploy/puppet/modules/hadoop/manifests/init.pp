@@ -19,6 +19,7 @@ class hadoop ($hadoop_security_authentication = "simple",
   $ha = "disabled",
   $hadoop_namenode_host = $fqdn,
   $hadoop_namenode_port = "8020",
+  $hadoop_standby_namenode_hosts = [hiera("bigtop::standby_head_node_0", "")],
   $nameservice_id = "ha-nn-uri",
   $kerberos_realm = undef,
   $zk = "",
@@ -123,7 +124,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     exec { 'hdfs ready':
         path      => ['/bin','/sbin','/usr/bin','/usr/sbin'],
         command   => 'hdfs dfsadmin -safemode wait',
-        tries     => 60,
+        tries     => 120,
         user      => 'hdfs',
         try_sleep => 1,
         require   => [Package['hadoop-hdfs'],
@@ -248,6 +249,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::properties { "/etc/hadoop/conf/log4j.properties":
+      source => '/etc/hadoop/conf.empty/log4j.properties.default',
       overrides => $hadoop_log4j_overrides,
       require => Package["hadoop"],
     }
@@ -364,6 +366,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::site { "/etc/hadoop/conf/capacity-scheduler.xml":
+      source => '/etc/hadoop/conf.empty/capacity-scheduler.xml.default',
       overrides => $capacity_scheduler_overrides,
       require => [Package["hadoop-yarn"]],
     }
@@ -374,6 +377,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::properties { "/etc/hadoop/conf/container-log4j.properties":
+      source => '/etc/hadoop/conf.empty/container-log4j.properties.default',
       overrides => $container_log4j_overrides,
       require => [Package["hadoop-yarn"]],
     }
@@ -481,9 +485,11 @@ class hadoop ($hadoop_security_authentication = "simple",
       $shared_edits_dir = "/hdfs_shared",
       $testonly_hdfs_sshkeys  = "no",
       $hadoop_ha_sshfence_user_home = "/var/lib/hadoop-hdfs",
+      $sshfence_enabled = false,
       $sshfence_privkey = "hadoop/id_sshfence",
       $sshfence_pubkey = "hadoop/id_sshfence.pub",
       $sshfence_user = "hdfs",
+      $sshfence_methods = "shell(/bin/true)",
       $zk = $hadoop::zk,
       $hadoop_security_authentication = $hadoop::hadoop_security_authentication,
       $kerberos_realm = $hadoop::kerberos_realm,
@@ -698,6 +704,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::env { "/etc/hadoop/conf/mapred-env.sh":
+      source => '/etc/hadoop/conf.empty/mapred-env.sh.default',
       overrides => $mapred_env_overrides,
       require => [Package["hadoop-mapreduce"]],
     }
@@ -837,6 +844,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::site { '/etc/hadoop-kms/conf/kms-acls.xml':
+      source => '/etc/hadoop-kms/conf.empty/kms-acls.xml.default',
       overrides => $kms_acls_overrides,
       require => Package['hadoop-kms'],
     }
@@ -854,6 +862,7 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
 
     bigtop_file::properties { '/etc/hadoop-kms/conf/kms-log4j.properties':
+      source => '/etc/hadoop-kms/conf.empty/kms-log4j.properties.default',
       overrides => $kms_log4j_overrides,
       require => Package['hadoop-kms'],
     }
@@ -915,34 +924,38 @@ class hadoop ($hadoop_security_authentication = "simple",
       $standby_bootstrap_retries = 10,
       # milliseconds
       $standby_bootstrap_retry_interval = 30000,
-      $should_format_namenode = undef) {
+      $is_namenode_formatted = false
+  ) {
     include hadoop::common_hdfs
 
     if ($hadoop::common_hdfs::ha != 'disabled') {
-      file { $hadoop::common_hdfs::sshfence_keydir:
-        ensure  => directory,
-        owner   => 'hdfs',
-        group   => 'hdfs',
-        mode    => '0700',
-        require => Package["hadoop-hdfs"],
-      }
+      if ($sshfence_enabled) {
+        # setup ssh fencing if configured
+        file { $hadoop::common_hdfs::sshfence_keydir:
+          ensure  => directory,
+          owner   => 'hdfs',
+          group   => 'hdfs',
+          mode    => '0700',
+          require => Package["hadoop-hdfs"],
+        }
 
-      file { $hadoop::common_hdfs::sshfence_keypath:
-        source  => "puppet:///files/$hadoop::common_hdfs::sshfence_privkey",
-        owner   => 'hdfs',
-        group   => 'hdfs',
-        mode    => '0600',
-        before  => Service["hadoop-hdfs-namenode"],
-        require => File[$hadoop::common_hdfs::sshfence_keydir],
-      }
+        file { $hadoop::common_hdfs::sshfence_keypath:
+          source  => "puppet:///files/$hadoop::common_hdfs::sshfence_privkey",
+          owner   => 'hdfs',
+          group   => 'hdfs',
+          mode    => '0600',
+          before  => Service["hadoop-hdfs-namenode"],
+          require => File[$hadoop::common_hdfs::sshfence_keydir],
+        }
 
-      file { "$hadoop::common_hdfs::sshfence_keydir/authorized_keys":
-        source  => "puppet:///files/$hadoop::common_hdfs::sshfence_pubkey",
-        owner   => 'hdfs',
-        group   => 'hdfs',
-        mode    => '0600',
-        before  => Service["hadoop-hdfs-namenode"],
-        require => File[$hadoop::common_hdfs::sshfence_keydir],
+        file { "$hadoop::common_hdfs::sshfence_keydir/authorized_keys":
+          source  => "puppet:///files/$hadoop::common_hdfs::sshfence_pubkey",
+          owner   => 'hdfs',
+          group   => 'hdfs',
+          mode    => '0600',
+          before  => Service["hadoop-hdfs-namenode"],
+          require => File[$hadoop::common_hdfs::sshfence_keydir],
+        }
       }
 
       if (! ('qjournal://' in $hadoop::common_hdfs::shared_edits_dir)) {
@@ -976,67 +989,57 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => Package["jdk"],
     }
 
-    service { "hadoop-hdfs-namenode":
-      ensure => running,
-      hasstatus => true,
-      subscribe => [Package["hadoop-hdfs-namenode"], Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"],
-        Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
-        Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-      require => [Package["hadoop-hdfs-namenode"]],
+    $is_head_namenode = ($::fqdn == $hadoop::common_hdfs::hadoop_namenode_host)
+    $standby_namenode_array = any2array($hadoop::hadoop_standby_namenode_hosts)
+    $is_standby_namenode = $::fqdn in $standby_namenode_array
+    $has_namenode = $is_head_namenode or $is_standby_namenode
+
+    $should_run_namenode_format = $is_head_namenode and !$is_namenode_formatted
+    $should_run_namenode_bootstrap_standby = $is_namenode_formatted ? {
+      false => $is_standby_namenode,
+      true  => $has_namenode
     }
-    Kerberos::Host_keytab <| title == "hdfs" |> -> Exec <| tag == "namenode-format" |> -> Service["hadoop-hdfs-namenode"]
-    Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-namenode"]
 
-    if ($hadoop::common_hdfs::ha == "auto") {
-      package { "hadoop-hdfs-zkfc":
-        ensure => latest,
-        require => Package["jdk"],
-      }
-
-      service { "hadoop-hdfs-zkfc":
-        ensure => running,
+    # This giant if {} will only be necessary until the upgrade to Hadoop 3, when Namenode will be
+    # installed on all masters, instead of just the first two.
+    if ($has_namenode) {
+      service { "hadoop-hdfs-namenode":
+        ensure    => running,
         hasstatus => true,
-        subscribe => [Package["hadoop-hdfs-zkfc"], Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"],
-          Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"], Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-        require => [Package["hadoop-hdfs-zkfc"]],
+        subscribe => [Package["hadoop-hdfs-namenode"], Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"],
+          Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+          Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'], ],
+        require   => [Package["hadoop-hdfs-namenode"]]
       }
-      Service <| title == "hadoop-hdfs-zkfc" |> -> Service <| title == "hadoop-hdfs-namenode" |>
-      Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-zkfc"]
-    }
+      # [a] -> <| b |> -> [c] does not imply [a] -> [c] if <| b |> does not resolve
+      # https://tickets.puppetlabs.com/browse/PUP-1410 (closed as will not fix)
+      Kerberos::Host_keytab <| title == "hdfs" |> -> Exec <| tag == "namenode-format" |>
+      Exec <| tag == "namenode-format" |> -> Service["hadoop-hdfs-namenode"]
+      Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-namenode"]
+      Service <| title == "hadoop-hdfs-journalnode" |> -> Exec <| tag == "namenode-format" |>
 
-    $namenode_array = any2array($hadoop::common_hdfs::hadoop_namenode_host)
-    $first_namenode = $namenode_array[0]
+      #####################################################################
+      ## IF THIS NODE IS FORMATTING, DEFINE NAMENODE-FORMAT. IF WE'RE    ##
+      ## ALSO IN HA SITUATION, DEFINE NN1-ACTIVATION TO MAKE NN1 MASTER. ##
+      #####################################################################
+      if ($should_run_namenode_format) {
 
-    $is_first_namenode = $::fqdn == $first_namenode
-    $format_namenode = $should_format_namenode ? {
-      undef => $is_first_namenode,
-      default => $should_format_namenode
-    }
-    if ($format_namenode) {
-      exec { "namenode format":
-        user => "hdfs",
-        command => "/bin/bash -c 'hdfs namenode -format -nonInteractive >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/nn.format.log 2>&1'",
-        returns => [ 0, 1],
-        creates => "${hadoop::common_hdfs::namenode_data_dirs[0]}/current/VERSION",
-        require => [ Package["hadoop-hdfs-namenode"], File[$hadoop::common_hdfs::namenode_data_dirs],
-          Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
-        tag     => "namenode-format",
-      }
+        exec { "namenode format":
+          user      => "hdfs",
+          command   => "/bin/bash -c 'hdfs namenode -format -nonInteractive >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/nn.format.log 2>&1'",
+          returns   => $hadoop::ha ? {"auto" => 0, default => [0, 1]},
+          creates   => "${hadoop::common_hdfs::namenode_data_dirs[0]}/current/VERSION",
+          require   => [ Package["hadoop-hdfs-namenode"], File[$hadoop::common_hdfs::namenode_data_dirs],
+            Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
+          tag       => "namenode-format",
+          tries     => $hadoop::ha ? {"auto" => 10, default => 1},
+          try_sleep => 5,
+        }
 
-      if ($hadoop::common_hdfs::ha != "disabled") {
-        if ($hadoop::common_hdfs::ha == "auto") {
-          exec { "namenode zk format":
-            user => "hdfs",
-            command => "/bin/bash -c 'hdfs zkfc -formatZK -nonInteractive >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/zk.format.log 2>&1'",
-            returns => [ 0, 2],
-            require => [ Package["hadoop-hdfs-zkfc"], Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"],
-             Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
-            tag     => "namenode-format",
-          }
-          Service <| title == "zookeeper-server" |> -> Exec <| title == "namenode zk format" |>
-          Exec <| title == "namenode zk format" |>  -> Service <| title == "hadoop-hdfs-zkfc" |>
-        } else {
-          exec { "activate nn1": 
+        if ($hadoop::ha == "manual") {
+          # we only want to do this if we're formatting and in manual (non-auto-failover) HA situation
+          # only one node should do this, just like only one node should format_namenode
+          exec { "activate nn1":
             command => "/usr/bin/hdfs haadmin -transitionToActive nn1",
             user    => "hdfs",
             unless  => "/usr/bin/test $(/usr/bin/hdfs haadmin -getServiceState nn1) = active",
@@ -1044,40 +1047,107 @@ class hadoop ($hadoop_security_authentication = "simple",
           }
         }
       }
-    } elsif ($hadoop::common_hdfs::ha == "auto") {
-      $retry_params = "-Dipc.client.connect.max.retries=$standby_bootstrap_retries \
+
+      ##############################################################################################
+      ## ZKFC IS ONLY NEEDED IN HA MODE, IF NAMENODE IS ON THIS NODE.                             ##
+      ## DEFINE ZKFC PACKAGE, NAMENODE-ZK-FORMAT, DEPENDENCIES FOR ZK/ZKFC, AND ZKFC SERVICE.     ##
+      ## ONLY RUN ZKFC-FORMAT IF WE'RE ALSO FORMATTING NAMENODE.                                  ##
+      ##############################################################################################
+      if ($hadoop::common_hdfs::ha == "auto" and $has_namenode) {
+        package { "hadoop-hdfs-zkfc":
+          ensure  => latest,
+          require => Package["jdk"],
+        }
+
+        # Because we cannot retry starting a service in Puppet, and hadoop-hdfs-zkfc will fail if
+        # namenode zk format is not run, we must let the two namenode masters race to run formatZK
+        # because otherwise if nn2 (default standby) gets here first, it will fail to provision.
+        #
+        # This is also why we allow a return code of 2 from namenode zk format, because 2 represents
+        # UNABLE_TO_FORMAT https://tiny.amazon.com/b9g4j95q/ZKFC-exit-code-2 which is returned when
+        # ZK has already been formatted.
+        exec { "namenode zk format":
+          user    => "hdfs",
+          command => "/bin/bash -c 'hdfs zkfc -formatZK -nonInteractive >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/zk.format.log 2>&1'",
+          returns => [0, 2],
+          require => [ Package["hadoop-hdfs-zkfc"], Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"],
+            Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
+          tag     => "namenode-format"
+        }
+
+        Exec["namenode zk format"] -> Service["hadoop-hdfs-zkfc"]
+        Service <| title == "zookeeper-server" |> -> Exec["namenode zk format"]
+
+        service { "hadoop-hdfs-zkfc":
+          ensure    => running,
+          hasstatus => true,
+          subscribe => [Package["hadoop-hdfs-zkfc"], Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"],
+            Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+            Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties']],
+          require   => [Package["hadoop-hdfs-zkfc"]],
+        }
+
+        Service["hadoop-hdfs-zkfc"] -> Service["hadoop-hdfs-namenode"]
+        Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-zkfc"]
+      }
+
+      if ($hadoop::common_hdfs::ha == "auto" and $should_run_namenode_bootstrap_standby ) {
+
+        $retry_params = "-Dipc.client.connect.max.retries=$standby_bootstrap_retries \
         -Dipc.client.connect.retry.interval=$standby_bootstrap_retry_interval"
 
-      exec { "namenode bootstrap standby":
-        user => "hdfs",
-        # first namenode might be rebooting just now so try for some time
-        command => "/bin/bash -c 'hdfs namenode -bootstrapStandby $retry_params >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/nn.bootstrap-standby.log 2>&1'",
-        creates => "${hadoop::common_hdfs::namenode_data_dirs[0]}/current/VERSION",
-        require => [ Package["hadoop-hdfs-namenode"], File[$hadoop::common_hdfs::namenode_data_dirs],
-          Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
-        tag     => "namenode-format",
+        exec { "namenode bootstrap standby":
+          user      => "hdfs",
+          command   => "/bin/bash -c 'hdfs namenode -bootstrapStandby $retry_params >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/nn.bootstrap-standby.log 2>&1'",
+          creates   => "${hadoop::common_hdfs::namenode_data_dirs[0]}/current/VERSION",
+          require   => [ Package["hadoop-hdfs-namenode"], File[$hadoop::common_hdfs::namenode_data_dirs],
+            Bigtop_file::Site["/etc/hadoop/conf/hdfs-site.xml"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"] ],
+          tag       => "namenode-format",
+          tries     => 10,
+          try_sleep => 5,
+          timeout   => 360,
+        }
+      } elsif ($hadoop::common_hdfs::ha == "manual" and $is_standby_namenode) {
+        hadoop::namedir_copy { $hadoop::common_hdfs::namenode_data_dirs:
+          source       => $first_namenode,
+          ssh_identity => $hadoop::common_hdfs::sshfence_keypath,
+          require      => File[$hadoop::common_hdfs::sshfence_keypath],
+        }
       }
-    } elsif ($hadoop::common_hdfs::ha != "disabled") {
-      hadoop::namedir_copy { $hadoop::common_hdfs::namenode_data_dirs:
-        source       => $first_namenode,
-        ssh_identity => $hadoop::common_hdfs::sshfence_keypath,
-        require      => File[$hadoop::common_hdfs::sshfence_keypath],
+
+      file {
+        "/etc/default/hadoop-hdfs-namenode":
+          content => template('hadoop/hadoop-hdfs'),
+          require => [Package["hadoop-hdfs-namenode"]],
+      }
+
+      hadoop::create_storage_dir { $hadoop::common_hdfs::namenode_data_dirs: } ->
+      file { $hadoop::common_hdfs::namenode_data_dirs:
+        ensure  => directory,
+        owner   => hdfs,
+        group   => hdfs,
+        mode    => '700',
+        require => [Package["hadoop-hdfs"]],
       }
     }
 
-    file {
-      "/etc/default/hadoop-hdfs-namenode":
-        content => template('hadoop/hadoop-hdfs'),
-        require => [Package["hadoop-hdfs-namenode"]],
-    }
+    if ($hadoop::common_hdfs::ha == "auto" and $is_namenode_formatted) {
+      Service <| title == 'hadoop-hdfs-journalnode' |> -> Exec['namenode initializeSharedEdits']
+      Exec <| tag == 'namenode-format' |> -> Exec['namenode initializeSharedEdits']
+      Exec['namenode initializeSharedEdits'] -> Exec['hdfs ready']
 
-    hadoop::create_storage_dir { $hadoop::common_hdfs::namenode_data_dirs: } ->
-    file { $hadoop::common_hdfs::namenode_data_dirs:
-      ensure => directory,
-      owner => hdfs,
-      group => hdfs,
-      mode => '700',
-      require => [Package["hadoop-hdfs"]], 
+      $remote_namenode_option = $has_namenode ? {
+        true  => '',
+        false => '-remoteNamenode'
+      }
+
+      exec { 'namenode initializeSharedEdits':
+        user      => 'hdfs',
+        command   => "/bin/bash -c 'hdfs namenode -initializeSharedEdits -newEditsOnly -nonInteractive $remote_namenode_option >> ${hadoop::common_hdfs::hadoop_hdfs_log_path}/nn.initialize_shared_edits.log 2>&1'",
+        returns   => 0,
+        require   => [ Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+          Bigtop_file::Site['/etc/hadoop/conf/hdfs-site.xml'] ]
+      }
     }
   }
 
@@ -1147,6 +1217,13 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => [ Package["hadoop-hdfs-journalnode"], File[$journalnode_cluster_journal_dir] ],
     }
     Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-hdfs-journalnode"]
+    Service["hadoop-hdfs-journalnode"] -> Service<| title == "hadoop-hdfs-namenode" |>
+    # The below statement is not implied if the above <||> does not resolve (in master slot3 case),
+    # so we provide an explicit definition of that dependency.
+    Service["hadoop-hdfs-journalnode"] -> Exec["hdfs ready"]
+    if (('qjournal://' in $hadoop::common_hdfs::shared_edits_dir)) {
+      Service <| title == "zookeeper-server" |> -> Service["hadoop-hdfs-journalnode"]
+    }
 
     hadoop::create_storage_dir { [$hadoop::common_hdfs::journalnode_edits_dir, $journalnode_cluster_journal_dir]: } ->
     file { [ "${hadoop::common_hdfs::journalnode_edits_dir}", "$journalnode_cluster_journal_dir" ]:
@@ -1157,7 +1234,6 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => [Package["hadoop-hdfs"]],
     }
   }
-
 
   class resourcemanager {
     include hadoop::common_yarn
@@ -1177,19 +1253,22 @@ class hadoop ($hadoop_security_authentication = "simple",
     }
     Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-resourcemanager"]
 
-    exec { 'install-core-nodelabel' :
-      command => 'yarn rmadmin -addToClusterNodeLabels "CORE(exclusive=false)"',
-      user => 'yarn',
-      require => [ Service["hadoop-yarn-resourcemanager"], Service["hadoop-hdfs-namenode"] ],
-      path => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
+    if (any2array($hadoop::common_yarn::hadoop_rm_host)[0] == $::fqdn) {
+      exec { 'add-to-cluster-node-labels':
+        command => 'yarn rmadmin -addToClusterNodeLabels "CORE(exclusive=false)"',
+        user    => 'yarn',
+        require => [ Service["hadoop-yarn-resourcemanager"], Exec["hdfs ready"] ],
+        path    => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
+      }
+
+      exec { "yarn rmadmin -refreshQueues":
+        subscribe => [Bigtop_file::Site["/etc/hadoop/conf/capacity-scheduler.xml"]],
+        user      => 'yarn',
+        require   => [ Service["hadoop-yarn-resourcemanager"], Exec["hdfs ready"] ],
+        path      => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
+      }
     }
 
-    exec { "yarn rmadmin -refreshQueues":
-      subscribe => [Bigtop_file::Site["/etc/hadoop/conf/capacity-scheduler.xml"]],
-      user => 'yarn',
-      require => Service["hadoop-yarn-resourcemanager"],
-      path => [ "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ],
-    }
     Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-yarn-resourcemanager"]
   }
 
@@ -1201,16 +1280,18 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => Package["jdk"],
     }
 
-    service { "hadoop-yarn-proxyserver":
-      ensure => running,
-      hasstatus => true,
-      subscribe => [Package["hadoop-yarn-proxyserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
-        Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
-        Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"],Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-      require => [ Package["hadoop-yarn-proxyserver"] ],
+    if ($hadoop::common_yarn::hadoop_ps_host == $::fqdn) {
+      service { "hadoop-yarn-proxyserver":
+        ensure    => running,
+        hasstatus => true,
+        subscribe => [Package["hadoop-yarn-proxyserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+          Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
+          Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'], ],
+        require   => [ Package["hadoop-yarn-proxyserver"] ],
+      }
+      Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-yarn-proxyserver"]
+      Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-proxyserver"]
     }
-    Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-yarn-proxyserver"]
-    Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-proxyserver"]
   }
 
   class timelineserver {
@@ -1221,16 +1302,18 @@ class hadoop ($hadoop_security_authentication = "simple",
       require => Package["jdk"],
     }
 
-    service { "hadoop-yarn-timelineserver":
-      ensure => running,
-      hasstatus => true,
-      subscribe => [Package["hadoop-yarn-timelineserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
-        Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
-        Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"],Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'],],
-      require => [ Package["hadoop-yarn-timelineserver"] ],
+    if ($hadoop::common_yarn::yarn_timeline_service_host == $::fqdn) {
+      service { "hadoop-yarn-timelineserver":
+        ensure    => running,
+        hasstatus => true,
+        subscribe => [Package["hadoop-yarn-timelineserver"], Bigtop_file::Env["/etc/hadoop/conf/hadoop-env.sh"],
+          Bigtop_file::Env["/etc/hadoop/conf/yarn-env.sh"], Bigtop_file::Site["/etc/hadoop/conf/yarn-site.xml"],
+          Bigtop_file::Site["/etc/hadoop/conf/core-site.xml"], Bigtop_file::Properties['/etc/hadoop/conf/hadoop-metrics2.properties'], ],
+        require   => [ Package["hadoop-yarn-timelineserver"] ],
+      }
+      Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-yarn-timelineserver"]
+      Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-timelineserver"]
     }
-    Kerberos::Host_keytab <| tag == "mapreduce" |> -> Service["hadoop-yarn-timelineserver"]
-    Bigtop_file::Site <| tag == "hadoop-plugin" |> ~> Service["hadoop-yarn-timelineserver"]
   }
 
   class historyserver {

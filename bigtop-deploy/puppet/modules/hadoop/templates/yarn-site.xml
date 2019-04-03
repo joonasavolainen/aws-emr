@@ -110,6 +110,26 @@
   </property>
 
   <property>
+    <name>yarn.resourcemanager.recovery.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.store.class</name>
+    <value>org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.ha.automatic-failover.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>yarn.resourcemanager.ha.automatic-failover.embedded</name>
+    <value>true</value>
+  </property>
+
+  <property>
     <name>yarn.resourcemanager.ha.rm-ids</name>
     <value><%= (1..resourcemanager_hosts.length).map { |n| "rm#{n}" }.join(",") %></value>
   </property>
@@ -146,6 +166,12 @@
     <name>yarn.resourcemanager.webapp.address.rm<%= idx+1 %></name>
     <value><%= host %>:<%= @hadoop_rm_webapp_port %></value>
   </property>
+
+  <property>
+    <name>yarn.resourcemanager.hostname.rm<%= idx+1 %></name>
+    <value><%= host %></value>
+  </property>
+
 <%   end -%>
 <% if @yarn_resourcemanager_zk_address -%>
 

@@ -17,7 +17,7 @@ class ganglia (
   $cluster_latlong = 'unspecified',
   $cluster_url = 'unspecified',
   $host_location = 'unspecified',
-  $aggregator_host = hiera('ganglia::aggregator_host'),
+  $aggregator_hosts = ["%{hiera('bigtop::hadoop_head_node')}"],
   $gmond_port = hiera('ganglia::gmond_port'),
   $gmetad_xml_port = hiera('ganglia::gmetad_xml_port'),
   $gmetad_interactive_port = hiera('ganglia::gmetad_interactive_port'),
@@ -51,7 +51,7 @@ class ganglia (
     $override_hostname = undef,
     $send_metadata_interval = '60',
     $gmond_port = $ganglia::gmond_port,
-    $aggregator_host = $ganglia::aggregator_host,
+    $aggregator_hosts = $ganglia::aggregator_hosts,
     $udp_recv_channel_buffer_size = undef,
   ) inherits ganglia {
 
@@ -104,7 +104,7 @@ class ganglia (
     $gmond_port = $ganglia::gmond_port,
     $gmetad_xml_port = $ganglia::gmetad_xml_port,
     $gmetad_interactive_port = $ganglia::gmetad_interactive_port,
-    $aggregator_host = $ganglia::aggregator_host,
+    $aggregator_hosts = $ganglia::aggregator_hosts,
     $use_old_default_rra = false,
   ) inherits ganglia {
 

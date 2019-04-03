@@ -369,6 +369,6 @@
 
     <property>
         <name>oozie.http.hostname</name>
-        <value><%= @fqdn %></value>
+        <value><%= @oozie_http_hostname %></value>
     </property>
 </configuration>

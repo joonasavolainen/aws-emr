@@ -84,6 +84,13 @@ class jupyter {
       logoutput => true, 
       require => Service['docker'],
     }
+    
+    exec { "Create EMR Docker Bridge Network":
+      path => "/usr/bin",
+      command => "docker network create -d bridge emr-docker-bridge",
+      logoutput => true,
+      require => Service['docker'],
+    }
   }
 
   class hub (
@@ -99,7 +106,7 @@ class jupyter {
 
     # For all execs running docker, we run as sudo. 
     
-    $command = "docker run --restart on-failure:5 -it -d  \
+    $command = "docker run --restart on-failure:5 -it -h jupyterhub -d  \
 -p 9443:9443 -e GRANT_SUDO=yes --user root \
 -v /etc/jupyter:/etc/jupyter -v /var/lib/jupyter/home:/home \
 -v /var/log/jupyter:/var/log/jupyter --privileged --name jupyterhub \
@@ -112,6 +119,13 @@ emr/jupyter-notebook:${jupyter::common::notebook_version}"
       require => [ Bigtop_file::Python["/etc/jupyter/jupyter_notebook_config.py"], 
         Bigtop_file::Python["/etc/jupyter/conf/jupyterhub_config.py"], 
         Bigtop_file::Json["/etc/jupyter/conf/config.json"] ],
+    }
+
+    exec { "Connect EMR Docker Bridge Network to JupyterHub container":
+      path => "/usr/bin",
+      command => "docker network connect emr-docker-bridge jupyterhub",
+      logoutput=> true,
+      require => Exec['Start JupyterHub'],
     }
 
     # We want to fail to provision if we cannot confirm Hub is running.
@@ -131,7 +145,7 @@ emr/jupyter-notebook:${jupyter::common::notebook_version}"
   class notebook {
     include jupyter::common
     
-    $command = "docker run --restart unless-stopped -it -d  \
+    $command = "docker run --restart unless-stopped -it -h jupyterhub -d  \
 -p 9443:9443 -e GRANT_SUDO=yes --user root \
 -v /etc/jupyter:/etc/jupyter -v /var/lib/jupyter/home:/home \
 -v /var/log/jupyter:/var/log/jupyter --privileged --name jupyterhub \

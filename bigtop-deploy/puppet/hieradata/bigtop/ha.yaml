@@ -1,5 +1,56 @@
 ---
-hadoop::ha: "manual"
-hadoop::hadoop_namenode_host:
+bigtop::hadoop_gateway_node: "%{fqdn}"
+
+hadoop::common_hdfs::journalnode_port: "8485"
+hadoop::common_hdfs::shared_edits_dir: "qjournal://%{hiera('bigtop::hadoop_head_node')}:%{hiera('hadoop::common_hdfs::journalnode_port')};%{hiera('bigtop::standby_head_node_0')}:%{hiera('hadoop::common_hdfs::journalnode_port')};%{hiera('bigtop::standby_head_node_1')}:%{hiera('hadoop::common_hdfs::journalnode_port')}/%{hiera('hadoop::nameservice_id')}"
+hadoop::common_hdfs::sshfence_privkey: ""
+hadoop::common_yarn::yarn_resourcemanager_cluster_id: &yarn_resourcemanager_cluster_id "ha-rm-uri"
+hadoop::common_yarn::yarn_resourcemanager_ha_enabled: true
+hadoop::common_yarn::hadoop_rm_host: &hadoop_rm_host
   - "%{hiera('bigtop::hadoop_head_node')}"
-  - "%{hiera('bigtop::standby_head_node')}"
+  - "%{hiera('bigtop::standby_head_node_0')}"
+  - "%{hiera('bigtop::standby_head_node_1')}"
+
+hadoop::ha: "auto"
+hadoop::hadoop_namenode_host: "%{hiera('bigtop::hadoop_head_node')}"
+hadoop::hadoop_standby_namenode_hosts:
+  - "%{hiera('bigtop::standby_head_node_0')}"
+hadoop::nameservice_id: "ha-nn-uri"
+bigtop::hadoop_namenode_uri: "hdfs://%{hiera('hadoop::nameservice_id')}"
+
+hadoop::zk: &zk_host_port "%{hiera('bigtop::hadoop_head_node')}:%{hiera('bigtop::hadoop_zookeeper_port')},%{hiera('bigtop::standby_head_node_0')}:%{hiera('bigtop::hadoop_zookeeper_port')},%{hiera('bigtop::standby_head_node_1')}:%{hiera('bigtop::hadoop_zookeeper_port')}"
+hadoop_zookeeper::server::ensemble:
+  - ["0", "%{hiera('bigtop::hadoop_head_node')}:2888:3888"]
+  - ["1", "%{hiera('bigtop::standby_head_node_0')}:2888:3888"]
+  - ["2", "%{hiera('bigtop::standby_head_node_1')}:2888:3888"]
+hadoop_zookeeper::server::myid: undef
+
+metastore_port: "%{hiera('hadoop_hive::common_config::metastore_server_port')}"
+hadoop_hive::common_config::metastore_server_uris: &metastore_server_uris
+  - "thrift://%{hiera('bigtop::hadoop_head_node')}:%{hiera('metastore_port')}"
+  - "thrift://%{hiera('bigtop::standby_head_node_0')}:%{hiera('metastore_port')}"
+  - "thrift://%{hiera('bigtop::standby_head_node_1')}:%{hiera('metastore_port')}"
+
+tez::client::tez_site_overrides:
+  tez.tez-ui.history-url.base: "http://%{hiera('bigtop::hadoop_gateway_node')}:8080/tez-ui/"
+
+spark::common::metastore_server_uris: *metastore_server_uris
+
+hiveserver2_port: "%{hiera('hadoop_hive::common_config::hiveserver2_port')}"
+hiveserver2_jdbc_connection_url: &hiveserver2_url "jdbc:hive2://%{hiera('bigtop::hadoop_head_node')}:%{hiera('hiveserver2_port')},%{hiera('bigtop::standby_head_node_0')}:%{hiera('hiveserver2_port')},%{hiera('bigtop::standby_head_node_1')}:%{hiera('hiveserver2_port')}/default"
+hadoop_rm_port: "%{hiera('hadoop::common_yarn::hadoop_rm_port')}"
+hadoop_oozie::server::hiveserver2_url: *hiveserver2_url
+hadoop_oozie::client::hiveserver2_url: *hiveserver2_url
+hadoop_oozie::client::resource_manager_uri: &resource_manager_uri "%{hiera('bigtop::hadoop_head_node')}:%{hiera('hadoop_rm_port')},%{hiera('bigtop::standby_head_node_0')}:%{hiera('hadoop_rm_port')},%{hiera('bigtop::standby_head_node_1')}:%{hiera('hadoop_rm_port')}"
+hadoop_oozie::server::resource_manager_uri: *resource_manager_uri
+
+hue::server::rm_host: *hadoop_rm_host
+hue::server::rm_logical_name: *yarn_resourcemanager_cluster_id
+hue::server::zookeeper_host_port: *zk_host_port
+
+hadoop_hbase::common_config::zookeeper_quorum: &hbase_zookeeper_quorum "%{hiera('bigtop::hadoop_head_node')},%{hiera('bigtop::standby_head_node_0')},%{hiera('bigtop::standby_head_node_1')}"
+hadoop_hive::common_config::hbase_zookeeper_quorum: *hbase_zookeeper_quorum
+
+gmond_port: "%{hiera('ganglia::gmond_port')}"
+ganglia::aggregator_hosts: *hadoop_rm_host
+ganglia::sink_servers: "%{hiera('bigtop::hadoop_head_node')}:%{hiera('gmond_port')},%{hiera('bigtop::standby_head_node_0')}:%{hiera('gmond_port')},%{hiera('bigtop::standby_head_node_1')}:%{hiera('gmond_port')}"

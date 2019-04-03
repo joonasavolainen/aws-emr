@@ -16,7 +16,7 @@
 <!-- See the License for the specific language governing permissions and      -->
 <!-- limitations under the License.                                           -->
 
-<% namenode_hosts = Array(@hadoop_namenode_host) -%>
+<% namenode_hosts = Array([@hadoop_namenode_host] + @hadoop_standby_namenode_hosts) -%>
 <configuration>
 
 <% if @ha != "disabled" -%>
@@ -89,7 +89,7 @@
     <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
   </property>
 
-<%   if @sshfence_privkey -%>
+<%   if (!@sshfence_privkey.to_s.empty?) -%>
   <property>
     <name>dfs.ha.fencing.methods</name>
     <value>sshfence(<%= @sshfence_user %>)</value>
@@ -103,7 +103,7 @@
 <%   else -%>
   <property>
     <name>dfs.ha.fencing.methods</name>
-    <value></value>
+    <value><%= @sshfence_methods %></value>
   </property>
 
 <%   end -%>

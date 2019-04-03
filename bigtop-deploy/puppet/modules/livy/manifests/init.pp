@@ -24,7 +24,9 @@ class livy {
     $livy_conf_overrides  = {},
     $livy_env_overrides   = {},
     $livy_log4j_overrides = {},
-    $kerberos_realm = '',
+    $kerberos_realm       = '',
+    $use_jwt              = false,
+    $knox_gateway_identity_pem = hiera('knox::common::gateway_identity_pem'),
   ) {
 
     package { 'livy':

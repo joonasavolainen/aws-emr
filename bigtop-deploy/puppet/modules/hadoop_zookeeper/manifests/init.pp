@@ -65,7 +65,7 @@ class hadoop_zookeeper (
     }
   }
 
-  class server($myid,
+  class server($myid = undef,
                 $port = "2181",
                 $datadir = "/var/lib/zookeeper",
                 $ensemble = [$myid, "localhost:2888:3888"],
@@ -96,8 +96,9 @@ class hadoop_zookeeper (
       require => Package["zookeeper-server"],
     }
 
+    $found_myid = find_myid($myid, $::fqdn, $ensemble)
     file { "/var/lib/zookeeper/myid":
-      content => inline_template("<%= @myid %>"),
+      content => inline_template('<%= @found_myid %>'),
       require => Package["zookeeper-server"],
     }
 

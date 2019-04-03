@@ -24,7 +24,7 @@ $roles_map = {
     library => ["hdfs-library"],
   },
   hdfs-ha => {
-    master => ["namenode"],
+    master => ["namenode", "journalnode"],
     worker => ["datanode"],
     standby => ["standby-namenode"],
     library => ["hdfs-library"],
@@ -103,6 +103,9 @@ $roles_map = {
   },
   livy => {
     master => ["livy-server"],
+  },
+  knox => {
+    master => ["knox-server"],
   },
   mahout => {
     client => ["mahout-client"],
@@ -254,6 +257,7 @@ class node_with_roles ($roles = hiera("bigtop::roles")) inherits hadoop_cluster_
     "kafka",
     "kerberos",
     "livy",
+    "knox",
     "nginx",
     "nvidia",
     "mahout",
